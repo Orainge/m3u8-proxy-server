@@ -21,9 +21,9 @@
 1. gunicorn启动
 
    ```sh
-   # gunicorn -w 线程数 -b 监听IP地址:监听IP端口 -c gunicorn_config.py m3u8ProxyServer:app
+   # gunicorn -w 线程数 -c gunicorn_config.py m3u8ProxyServer:app
    # 例如
-   gunicorn -w 4 -b 0.0.0.0:7820 -c gunicorn_config.py m3u8ProxyServer:app
+   gunicorn -w 4 -c gunicorn_config.py m3u8ProxyServer:app
    ```
 
 2. 直接启动（单线程）
