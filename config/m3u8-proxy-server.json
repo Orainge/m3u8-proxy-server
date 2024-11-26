@@ -1,0 +1,47 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": "18080",
+    "url": {
+      "default": "http://127.0.0.1:18080",
+      "others": {
+        "backup": "http://127.0.0.1:18080"
+      }
+    }
+  },
+  "security": {
+    "hideServer": true,
+    "urlEncryptOffset": 0,
+    "api": {
+      "enable": true,
+      "token": "TOKEN"
+    },
+    "uri": {
+      "proxy": "proxy",
+      "m3u8": "m3u8",
+      "video": "video"
+    }
+  },
+  "request": {
+    "timeout": 10,
+    "m3u8File": {
+      "maxRedirectTimes": 5,
+      "maxDeep": 5
+    },
+    "userAgent": {
+      "default": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.5410.0 Safari/537.36",
+      "rules": {
+        "https?://.*\\.example\\.com/.*": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.5410.0 Safari/537.36"
+      }
+    }
+  },
+  "proxy": {
+    "enable": true,
+    "server": {
+      "default": "http://127.0.0.1:8080",
+      "rules": {
+        "https?://.*\\.example\\.com/.*": "http://127.0.0.1:8080"
+      }
+    }
+  }
+}
