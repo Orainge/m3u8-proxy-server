@@ -2,7 +2,7 @@
 from flask import Blueprint, request
 
 from exception import ParamsError
-from route.consts.param_name import URL, SERVER_NAME, ENABLE_PROXY
+from route.consts.param_name import URL, SERVER_NAME, HIDE_SERVER_NAME, ENABLE_PROXY
 from route.util import response_json_ok
 from route.service import api as api_service
 
@@ -21,12 +21,13 @@ def api_m3u8_proxy_url_get():
         body = request.get_json()
         url = body[URL]
         server_name = body[SERVER_NAME] if SERVER_NAME in body else None
-        enable_proxy = body[ENABLE_PROXY] if ENABLE_PROXY in body else None
+        hide_server_name = body[HIDE_SERVER_NAME] if HIDE_SERVER_NAME in body else False
+        enable_proxy = body[ENABLE_PROXY] if ENABLE_PROXY in body else False
     except Exception:
         raise ParamsError()
 
     # 获取代理后的链接
-    m3u8_proxy_url = api_service.generate_m3u8_proxy_url(url, enable_proxy, server_name)
+    m3u8_proxy_url = api_service.generate_m3u8_proxy_url(url, server_name, hide_server_name, enable_proxy)
 
     # 返回结果
     return response_json_ok(data=m3u8_proxy_url)

@@ -11,7 +11,12 @@
   },
   "security": {
     "hideServer": true,
-    "urlEncryptOffset": 0,
+    "urlEncryptOffset": {
+      "default": 0,
+      "rules": {
+        "backup": 15
+      }
+    },
     "api": {
       "enable": true,
       "token": "TOKEN"
@@ -25,8 +30,8 @@
   "request": {
     "timeout": 10,
     "m3u8File": {
-      "maxRedirectTimes": 5,
-      "maxDeep": 5
+      "maxDeep": 5,
+      "maxRedirectTimes": 5
     },
     "userAgent": {
       "default": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.5410.0 Safari/537.36",
