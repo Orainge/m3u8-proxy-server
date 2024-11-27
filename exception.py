@@ -41,11 +41,11 @@ class UrlDecryptError(DecryptError):
         super().__init__(message='URL 不正确')
 
 
-class ServerUrlTypeError(ParamsError):
-    """Server URL 类型不正确"""
+class ServerNameError(ParamsError):
+    """服务器名称不正确"""
 
     def __init__(self):
-        super().__init__(message='Server URL 类型不正确')
+        super().__init__(message='服务器名称不正确')
 
 
 class TimestampParamsError(ParamsError):

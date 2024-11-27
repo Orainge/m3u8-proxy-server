@@ -1,7 +1,7 @@
 # 服务器工具类
 
 import server_config
-from exception import ServerUrlTypeError
+from exception import ServerNameError
 
 # 外部服务器访问 URL
 server_url_dict = server_config.get_config(["server", "url"], {})
@@ -34,4 +34,4 @@ def get_server_url(server_name: str = None) -> str:
         return others_server_url_dict[server_name]
     else:
         # 否则抛出异常
-        raise ServerUrlTypeError()
+        raise ServerNameError()
