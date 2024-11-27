@@ -35,6 +35,7 @@ check_timer(){
     # /usr/bin/python3 -u  ${project_path}/m3u8ProxyServer.py >> /dev/null 2>&1 &
     # /usr/bin/python3 -u  ${project_path}/m3u8ProxyServer.py >> ${project_path}/run.log 2>&1 &
     # gunicorn -w 4 -c gunicorn_config.py m3u8ProxyServer:app >> /dev/null 2>&1 &
+    cd ${project_path}
     gunicorn -w 4 -c gunicorn_config.py m3u8ProxyServer:app >> ${project_path}/run.log 2>&1 &
     get_pid
     echo "[`date +'%Y-%m-%d %H:%M:%S'`] 进程已停止，重启 ${process_check_key} [`echo ${timer_pid}`]" >> ${project_path}/monitor/monitor.log
