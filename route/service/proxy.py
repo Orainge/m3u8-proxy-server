@@ -108,7 +108,7 @@ def do_request_m3u8_file(url, enable_proxy) -> ProxyM3u8Response:
                                     'User-Agent': request_util.get_user_agent(url),
                                 },
                                 allow_redirects=False,
-                                proxies=proxy_util.get_proxies(url) if enable_proxy is True else None)
+                                proxies=proxy_util.get_proxies(url, enable_proxy))
 
         # 获取请求结果 code，根据请求结果 code 进行判断
         status_code = response.status_code
@@ -210,5 +210,5 @@ def proxy_video(url, enable_proxy):
                         headers={
                             'User-Agent': request_util.get_user_agent(url),
                         },
-                        proxies=proxy_util.get_proxies(url) if enable_proxy is True else None,
+                        proxies=proxy_util.get_proxies(url, enable_proxy),
                         stream=True)
