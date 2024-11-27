@@ -29,10 +29,23 @@ def get_proxy_server_url(url: str, enable_proxy: bool) -> str | None:
     # 根据正则表达式寻找对应的代理服务器 URL
     for regex, value in proxy_server_rules_dict.items():
         if re.search(regex, url):
-            return value
+            # 找到匹配规则
+            result = value
 
-    # 返回默认服务器 URL
-    return default_proxy_server_url
+            # 检查是否等于 "default"，如果是就替换为默认代理服务器
+            if value == "default":
+                result = default_proxy_server_url
+
+            # 返回结果
+            return result
+
+    # 上面正则表达式没有找到，根据情况判断
+    if enable_proxy is True:
+        # 如果参数要求开启代理，返回默认服务器
+        return default_proxy_server_url
+    else:
+        # 否则返回 None
+        return None
 
 
 def get_proxies(url: str, enable_proxy: bool) -> dict | None:
