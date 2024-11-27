@@ -28,7 +28,7 @@ class RequestM3u8FileError(RouteError):
             data["text"] = text
 
         super().__init__(
-            code=200,
+            code=500,
             message='请求错误' if message is None else f'请求错误：{message}',
             data=data
         )

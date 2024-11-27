@@ -47,6 +47,7 @@
       "forceEnableRules": true,
       "rules": {
         "https?://default.example\\.com/.*": "default",
+        "https?://none.example\\.com/.*": "none",
         "https?://.*\\.example\\.com/.*": "http://127.0.0.1:8080"
       }
     }
