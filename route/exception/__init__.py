@@ -6,6 +6,16 @@ from exception import RouteError
 logger = logging.getLogger(__name__)
 
 
+class NotSupportContentTypeError(RouteError):
+    """不支持的内容类型"""
+
+    def __init__(self):
+        super().__init__(
+            code=500,
+            message='请求错误：不支持的内容类型'
+        )
+
+
 class RequestM3u8FileError(RouteError):
     """请求 M3U8 文件出错"""
 

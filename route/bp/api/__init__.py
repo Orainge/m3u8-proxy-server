@@ -4,7 +4,7 @@ import time
 import server_config
 from flask import Blueprint, request
 
-from .m3u8_proxy_url import api_m3u8_proxy_url_bp
+from .proxy import api_proxy_bp
 
 from exception import ParamsError, TokenParamsError, TimestampParamsError
 from route.consts.param_name import TOKEN, TIMESTAMP
@@ -13,7 +13,7 @@ from route.consts.param_name import TOKEN, TIMESTAMP
 api_bp = Blueprint("api", __name__, url_prefix='/api')
 
 # 注册蓝图
-api_bp.register_blueprint(api_m3u8_proxy_url_bp)
+api_bp.register_blueprint(api_proxy_bp)
 
 # 是否启用 API
 enable_api = server_config.get_config(["security", "api", "enable"], False)

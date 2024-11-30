@@ -77,14 +77,14 @@ def internal_server_error(e):
     else:
         return response_json_error(
             message='str(e)',
-            # data=f'{type(e).__name__}: {e}'
+            data=f'{type(e).__name__}: {e}'
         )
 
 
 def exception_error(e):
     return response_json_error(
-        message='Internal Server Error'
-        # data=f'{type(e).__name__}: {e}'
+        message='Internal Server Error',
+        data=f'{type(e).__name__}: {e}'
     )
 
 

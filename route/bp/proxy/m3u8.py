@@ -10,7 +10,7 @@ from route.consts.uri_param_name import URI_NAME_M3U8
 from route.service import proxy as proxy_service
 from route.exception import RequestM3u8FileError
 
-# 创建蓝图，以 /proxy 为前缀
+# 创建蓝图
 proxy_m3u8_bp = Blueprint("proxy_m3u8", __name__, url_prefix=f'/{URI_NAME_M3U8}')
 
 
@@ -31,17 +31,17 @@ def proxy_m3u8_file(encrypt_url):
         raise UrlDecryptError()
 
     # 生成反代 M3U8 的链接
-    proxy_m3u8_response = proxy_service.get_proxy_m3u8_response(url, enable_proxy, server_name)
-
+    m3u8_response = proxy_service.get_m3u8_response(url, enable_proxy, server_name,
+                                                    enable_process_video_proxy=True)
     # 没有内容，抛出异常
-    if proxy_m3u8_response is None:
+    if m3u8_response is None:
         raise RequestM3u8FileError(url=url, message="无法请求指定文件")
 
     # 设置响应头
     headers = {
         'Content-Type': 'application/x-mpegURL',
-        'Content-Length': proxy_m3u8_response.get_body_length()
+        'Content-Length': m3u8_response.get_body_length()
     }
 
     # 返回结果（M3U8 文件内容，不是 JSON）
-    return Response(proxy_m3u8_response.body, status=200, headers=headers)
+    return Response(m3u8_response.body, status=200, headers=headers)

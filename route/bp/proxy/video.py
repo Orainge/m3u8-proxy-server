@@ -9,7 +9,7 @@ from route.consts.uri_param_name import URI_NAME_VIDEO
 from route.service import proxy as proxy_service
 from util import encrypt as encrypt_util
 
-# 创建蓝图，以 /proxy 为前缀
+# 创建蓝图
 proxy_video_bp = Blueprint("proxy_video", __name__, url_prefix=f'/{URI_NAME_VIDEO}')
 
 

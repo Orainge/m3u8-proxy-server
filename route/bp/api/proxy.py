@@ -1,19 +1,20 @@
-# Route: M3u8 代理链接
+# Route: 代理
 from flask import Blueprint, request
 
 from exception import ParamsError
+from route import service
 from route.consts.param_name import URL, SERVER_NAME, HIDE_SERVER_NAME, ENABLE_PROXY
+from route.consts.uri_param_name import URI_NAME_URL
 from route.util import response_json_ok
-from route.service import api as api_service
 
 # 创建蓝图，以 /api 为前缀
-api_m3u8_proxy_url_bp = Blueprint("api_m3u8_proxy_url", __name__, url_prefix='/m3u8Proxy')
+api_proxy_bp = Blueprint("api_proxy", __name__, url_prefix='/proxy')
 
 
-@api_m3u8_proxy_url_bp.route('/getUrl', methods=['POST'])
-def api_m3u8_proxy_url_get():
+@api_proxy_bp.route('/getUrl', methods=['POST'])
+def api_proxy_get_url():
     """
-    获取 M3U8 代理链接
+    获取代理 URL
     """
 
     # 获取参数
@@ -26,8 +27,8 @@ def api_m3u8_proxy_url_get():
     except Exception:
         raise ParamsError()
 
-    # 获取代理后的链接
-    m3u8_proxy_url = api_service.generate_m3u8_proxy_url(url, server_name, hide_server_name, enable_proxy)
+    # 获取代理后的 URL
+    proxy_url = service.generate_proxy_url(url, URI_NAME_URL, server_name, hide_server_name, enable_proxy)
 
     # 返回结果
-    return response_json_ok(data=m3u8_proxy_url)
+    return response_json_ok(data=proxy_url)

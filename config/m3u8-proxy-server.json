@@ -23,6 +23,7 @@
     },
     "uri": {
       "proxy": "proxy",
+      "url": "url",
       "m3u8": "m3u8",
       "video": "video"
     }
