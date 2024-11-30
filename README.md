@@ -20,17 +20,21 @@
 
 1. gunicorn启动
 
+   > 注意：需要设置超时时间，否则在代理流式传输的视频时，会播放一段时间就自动停止。
+   >
+   > 设置`--timeout 600` 参数表示 10*60 秒内自动关闭连接
+
    ```sh
-   # gunicorn -w 线程数 -c gunicorn_config.py m3u8ProxyServer:app
+   # gunicorn --timeout 600 -w 线程数 -c gunicorn_config.py m3u8ProxyServer:app
    # 例如
-   gunicorn -w 4 -c gunicorn_config.py m3u8ProxyServer:app
+   gunicorn --timeout 600 -w 4 -c gunicorn_config.py m3u8ProxyServer:app
    ```
 
 2. 直接启动（单线程）
 
    ```sh
    # 无输出日志
-   # python3 -u  m3u8ProxyServer.py >> /dev/null 2>&1 &
+   # python3 -u m3u8ProxyServer.py >> /dev/null 2>&1 &
    
    # 输出日志
    /usr/bin/python3 -u m3u8ProxyServer.py >> run.log 2>&1 &
