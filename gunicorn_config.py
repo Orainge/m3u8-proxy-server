@@ -8,6 +8,11 @@ import server_config
 # 默认监听端口
 bind = f'{server_config.HOST}:{server_config.PORT}'
 
+daemon = True
+pidfile = 'log/gunicorn.pid'  # PID 文件
+accesslog = 'log/access.log'  # 访问日志
+errorlog = 'log/gunicorn.log'  # gunicorn 日志
+
 logger = logging.getLogger(__name__)
 
 
