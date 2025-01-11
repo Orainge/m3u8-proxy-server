@@ -6,7 +6,7 @@ import server_config
 
 # 预载代理服务器信息
 config_enable_proxy = server_config.get_config(["proxy", "enable"], False)  # 是否启用代理
-force_enable_rules = server_config.get_config(["proxy", "forceEnableRules"], False)  # 是否强制开启规则匹配
+force_enable_rules = server_config.get_config(["proxy", "server", "forceEnableRules"], False)  # 是否强制开启规则匹配
 default_proxy_server_url = server_config.get_config(["proxy", "server", "default"], None)  # 默认代理服务器 URL
 proxy_server_rules_dict = server_config.get_config(["proxy", "server", "rules"], {})  # 代理服务器规则
 
@@ -36,7 +36,7 @@ def get_proxy_server_url(url: str, enable_proxy: bool) -> str | None:
             if value == "default":
                 result = default_proxy_server_url
 
-            # 检查是否等于 "default"，如果是就直接返回不代理
+            # 检查是否等于 "none"，如果是就直接返回不代理
             if value == "none":
                 return None
 

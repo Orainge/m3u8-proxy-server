@@ -43,11 +43,3 @@ def get_config(keys: List[str], default_value: Any = None) -> Any:
     else:
         # 否则直接返回
         return item
-
-
-# ========================== 个性化配置获取 ==========================
-# 请求 M3U8 文件时，最大的 URL 重定向次数
-M3U8_FILE_MAX_REDIRECT_TIMES = get_config(["request", "m3u8File", "maxRedirectTimes"], 5)
-
-# 请求 M3U8 文件时，M3U8 最深层级
-M3U8_FILE_MAX_DEEP = get_config(["request", "m3u8File", "maxDeep"], 5)

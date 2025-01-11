@@ -43,6 +43,10 @@ def api_before_request():
         # 没有 body
         raise ParamsError()
 
+    # 验证 Token
+    if body[TOKEN] != api_token:
+        raise TokenParamsError()
+
     try:
         # 检查时间戳是否正确
         timestamp = body[TIMESTAMP]
@@ -66,7 +70,3 @@ def api_before_request():
         raise te
     except Exception as e:
         raise ParamsError()
-
-    # 验证 Token
-    if body[TOKEN] != api_token:
-        raise TokenParamsError()

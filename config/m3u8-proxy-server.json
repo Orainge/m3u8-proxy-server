@@ -30,9 +30,25 @@
   },
   "request": {
     "timeout": 10,
-    "m3u8File": {
-      "maxDeep": 5,
-      "maxRedirectTimes": 5
+    "url": {
+      "maxRedirectTimes": {
+        "default": 5,
+        "rules": {
+          "https?://default.example\\.com/.*": 0,
+          "https?://none.example\\.com/.*": 1,
+          "https?://.*\\.example\\.com/.*": 2
+        }
+      }
+    },
+    "m3u8": {
+      "maxDeep": {
+        "default": 5,
+        "rules": {
+          "https?://default.example\\.com/.*": 0,
+          "https?://none.example\\.com/.*": 1,
+          "https?://.*\\.example\\.com/.*": 2
+        }
+      }
     },
     "userAgent": {
       "default": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.5410.0 Safari/537.36",

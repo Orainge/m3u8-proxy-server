@@ -11,6 +11,11 @@ default_user_agent = server_config.get_config(["request", "userAgent", "default"
 user_agent_rules_dict = server_config.get_config(["request", "userAgent", "rules"], {})  # User-Agent 规则
 request_timeout = server_config.get_config(["request", "timeout"], 10)  # 请求超时时间
 
+# 请求 URL 时，最大的重定向次数
+default_max_redirect_times = server_config.get_config(["request", "url", "maxRedirectTimes", "default"], 5)
+max_redirect_times_rules_dict = server_config.get_config(
+    ["request", "url", "maxRedirectTimes", "rules"], {})
+
 
 def get_user_agent(url: str) -> str | None:
     """
@@ -41,3 +46,19 @@ def append_query_params_to_url(url, query_params):
 
     # 返回结果
     return final_url
+
+
+def get_max_redirect_times(url: str) -> int:
+    """
+    获取请求 URL 时，最大的重定向次数
+    :param url: 待访问的 URL
+    :return: 最大重定向次数
+    """
+    # 根据正则表达式寻找 URL 最大重定向次数
+    for regex, value in max_redirect_times_rules_dict.items():
+        if re.search(regex, url):
+            # 找到匹配规则
+            return value
+
+    # 返回默认值
+    return default_max_redirect_times

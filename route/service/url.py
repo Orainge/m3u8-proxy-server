@@ -7,7 +7,7 @@ from route import service
 from route.consts.uri_param_name import URI_NAME_M3U8, URI_NAME_VIDEO
 from route.consts.url_type import URL_TYPE_M3U8, URL_TYPE_VIDEO
 from route.consts.url_type import accept_content_type_regex_list_m3u8, accept_content_type_regex_list_video
-from route.exception import NotSupportContentTypeError, RequestM3u8FileError
+from route.exception import NotSupportContentTypeError, RequestUrlError, RequestM3u8FileError
 from route.service import proxy as proxy_service
 from util import proxy as proxy_util
 from util import request as request_util
@@ -22,18 +22,44 @@ def get_redirect_url(url, enable_proxy, server_name):
     :param server_name: 服务器名称
     """
     # 先请求 URL，看看是什么类型的链接
-    response = requests.get(url,
-                            timeout=request_timeout,
-                            headers={
-                                'User-Agent': request_util.get_user_agent(url),
-                            },
-                            proxies=proxy_util.get_proxies(url, enable_proxy),
-                            stream=True)
+    request_success = False  # 请求是否成功
+    to_request_url = url
+    max_redirect_times = request_util.get_max_redirect_times(url)
+    response = None
+    for i in range(max_redirect_times + 1):
+        response = requests.get(to_request_url,
+                                timeout=request_timeout,
+                                headers={
+                                    'User-Agent': request_util.get_user_agent(url)
+                                },
+                                allow_redirects=False,
+                                proxies=proxy_util.get_proxies(url, enable_proxy),
+                                stream=True)
+
+        # 获取请求结果 code，根据请求结果 code 进行判断
+        status_code = response.status_code
+        if status_code == 200:
+            # 正常请求
+            request_success = True
+
+            # 退出循环
+            break
+        elif 300 <= status_code < 400:
+            # 处理重定向
+            to_request_url = response.headers["Location"]
+        else:
+            # 不正常的请求，抛出异常
+            raise RequestUrlError(url=to_request_url, status_code=status_code, text=response.text)
+
     # 关闭流
     response.close()
 
+    if not request_success:
+        # 抛出异常：请求次数超过设置的最大重定向次数
+        raise RequestUrlError(message="请求次数超过设置的最大重定向次数", url=url)
+
     # 拿到最后 URL（包括重定向后的 URL）
-    final_url = response.url
+    final_url = to_request_url
 
     # 判断  URL 类型
     url_type = None

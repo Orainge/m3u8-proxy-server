@@ -4,12 +4,12 @@ import re
 import requests
 from flask import Response
 
-from server_config import M3U8_FILE_MAX_DEEP, M3U8_FILE_MAX_REDIRECT_TIMES
 from route.consts.param_name import ENABLE_PROXY
 from route.consts.uri_param_name import URI_NAME_PROXY, URI_NAME_VIDEO
 from route.consts.url_type import accept_content_type_regex_list_m3u8, accept_content_type_regex_list_video
 from route.exception import RequestM3u8FileError, NotSupportContentTypeError
 from util import encrypt as encrypt_util
+from util import m3u8 as m3u8_util
 from util import proxy as proxy_util
 from util import request as request_util
 from util import server as server_util
@@ -88,7 +88,7 @@ def get_m3u8_response(url: str,
     m3u8_response = None
 
     # 递归查找最终含 ts 流的 M3U8 文件（指定层级）
-    for i in range(M3U8_FILE_MAX_DEEP):
+    for i in range(m3u8_util.get_max_deep(url) + 1):
         m3u8_response = do_request_m3u8_file(url, enable_proxy)
         judge_result = judge_final_m3u8_file(m3u8_response, enable_proxy, server_name, enable_process_video_proxy)
         if judge_result.is_final_m3u8_file:
@@ -112,7 +112,8 @@ def do_request_m3u8_file(url: str, enable_proxy: bool) -> M3u8Response:
     """
     # 请求，请求次数限制在设置的最大重定向次数
     to_request_url = url
-    for i in range(M3U8_FILE_MAX_REDIRECT_TIMES):
+    max_redirect_times = request_util.get_max_redirect_times(url)
+    for i in range(max_redirect_times + 1):
         response = requests.get(to_request_url,
                                 timeout=request_timeout,
                                 headers={

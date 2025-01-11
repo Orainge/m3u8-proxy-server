@@ -1,4 +1,4 @@
-# Route: 代理
+# Route: API-代理
 from flask import Blueprint, request
 
 from exception import ParamsError
