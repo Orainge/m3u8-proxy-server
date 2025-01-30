@@ -180,7 +180,6 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
             judge_result.append_body_empty_line()
         elif line_str.startswith("#"):
             # "#" 开头的行 / 非 URL 行
-
             # 特殊处理：标签 "#EXT-X-PREFETCH"
             if line_str.startswith("#EXT-X-PREFETCH"):
                 video_url = line_str.split(":", 1)[1]
@@ -236,7 +235,7 @@ def _process_video_url(proxy_m3u8_result: M3u8Response,
 
     if video_url.startswith("http"):
         # 绝对路径
-        is_relative_url = True
+        is_direct_url = True
 
         # 检查是否强制代理 M3U8 里面的 Video
         if service_util.get_proxy_video_direct_url(video_url) is not True:
@@ -244,20 +243,20 @@ def _process_video_url(proxy_m3u8_result: M3u8Response,
             return video_url
     else:
         # 相对路径
-        is_relative_url = False
+        is_direct_url = False
 
         # 如果开始于 "/" ，需要去掉这个斜杠
         if video_url.startswith("/"):
             video_url = video_url[1:]
 
     # 拼接成代理 URL
-    if is_relative_url:
+    if is_direct_url:
+        # 如果是绝对路径 URL
+        video_url = url_prefix + encrypt_util.encrypt_string(f'{video_url}')
+    else:
         # 如果是相对路径 URL
         video_url = url_prefix + encrypt_util.encrypt_string(
             f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{video_url}')
-    else:
-        # 是绝对路径 URL
-        video_url = url_prefix + encrypt_util.encrypt_string(f'{video_url}')
 
     # 准备附加额外参数
     query_params = {}

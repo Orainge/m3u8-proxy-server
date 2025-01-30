@@ -1,4 +1,4 @@
-# Route: API
+# Route: 代理 Video
 
 from flask import Blueprint, request, Response
 
@@ -16,9 +16,6 @@ proxy_video_bp = Blueprint("proxy_video", __name__, url_prefix=f'/{URI_NAME_VIDE
 # 代理接口：请求视频文件件
 @proxy_video_bp.route('/<encrypt_url>', methods=['GET'])
 def proxy_video_file(encrypt_url):
-    # 获取参数（可以为空）
-    enable_proxy = route_util.judge_if_true(request.args.get(ENABLE_PROXY))
-
     # 解密 URL
     try:
         url = encrypt_util.decrypt_string(encrypt_url)
@@ -28,6 +25,9 @@ def proxy_video_file(encrypt_url):
         raise e
     except Exception:
         raise UrlDecryptError()
+
+    # 获取参数（可以为空）
+    enable_proxy = route_util.judge_if_true(request.args.get(ENABLE_PROXY))
 
     # 获得视频流响应
     response = proxy_service.proxy_video(url, enable_proxy)

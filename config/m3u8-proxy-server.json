@@ -18,6 +18,7 @@
       "proxy": "proxy",
       "url": "url",
       "m3u8": "m3u8",
+      "mpd": "mpd",
       "video": "video"
     },
     "urlEncryptOffset": {
@@ -32,6 +33,17 @@
       "enable": true
     },
     "proxy": {
+      "mpd": {
+        "enable": true,
+        "directUrl": {
+          "default": false,
+          "rules": {
+            "https?://default.example\\.com/.*": true,
+            "https?://none.example\\.com/.*": true,
+            "https?://.*\\.example\\.com/.*": true
+          }
+        }
+      },
       "video": {
         "enable": true,
         "directUrl": {

@@ -1,4 +1,4 @@
-# Route: API
+# Route: 代理 M3U8
 
 from flask import Blueprint, request, Response
 
@@ -17,10 +17,6 @@ proxy_m3u8_bp = Blueprint("proxy_m3u8", __name__, url_prefix=f'/{URI_NAME_M3U8}'
 # 代理接口：获取 M3U8 文件
 @proxy_m3u8_bp.route('/<encrypt_url>', methods=['GET'])
 def proxy_m3u8_file(encrypt_url):
-    # 获取参数（可以为空）
-    enable_proxy = route_util.judge_if_true(request.args.get(ENABLE_PROXY))
-    server_name = request.args.get(SERVER_NAME)
-
     # 解密 URL
     try:
         url = encrypt_util.decrypt_string(encrypt_url)
@@ -29,6 +25,10 @@ def proxy_m3u8_file(encrypt_url):
 
     if not url.startswith("http"):
         raise UrlDecryptError()
+
+    # 获取参数（可以为空）
+    enable_proxy = route_util.judge_if_true(request.args.get(ENABLE_PROXY))
+    server_name = request.args.get(SERVER_NAME)
 
     # 生成反代 M3U8 的链接
     m3u8_response = proxy_service.get_m3u8_response(url, enable_proxy, server_name)

@@ -39,7 +39,7 @@ def append_query_params_to_url(url, query_params):
         return url
 
     # 使用 urlencode() 函数将查询参数编码为 URL 编码格式
-    encoded_query_params = urlencode(query_params)
+    encoded_query_params = urlencode(query_params, doseq=True)
 
     # 使用 urljoin() 函数拼接 URL 和查询参数
     final_url = urljoin(url, '?' + encoded_query_params)

@@ -11,7 +11,7 @@ default_proxy_server_url = server_config.get_config(["proxy", "server", "default
 proxy_server_rules_dict = server_config.get_config(["proxy", "server", "rules"], {})  # 代理服务器规则
 
 
-def get_proxy_server_url(url: str, enable_proxy: bool) -> str | None:
+def get_proxy_server_url(url: str, enable_proxy: bool = False) -> str | None:
     """
     获取代理服务器 URL
     :param url: 待访问的 URL
@@ -22,7 +22,7 @@ def get_proxy_server_url(url: str, enable_proxy: bool) -> str | None:
     if not config_enable_proxy:
         return None
 
-    # 既没有开启规则匹配，也没有要求代理
+    # 在没有开启规则匹配的情况下，也没有要求用代理请求
     if force_enable_rules is not True and enable_proxy is not True:
         return None
 
@@ -52,7 +52,7 @@ def get_proxy_server_url(url: str, enable_proxy: bool) -> str | None:
         return None
 
 
-def get_proxies(url: str, enable_proxy: bool) -> dict | None:
+def get_proxies(url: str, enable_proxy: bool = False) -> dict | None:
     """
     获取代理服务器 URL dict
     :param url: 待访问的 URL

@@ -8,6 +8,25 @@ from typing import Union, List
 this_project_base_path = None
 
 
+def get_url_root(request_url: str) -> str:
+    """
+    获取 URL 的根路径
+    :param request_url: 请求的 URL
+    :return URL 的根路径
+    """
+    if request_url is None or len(request_url) == 0:
+        return ''
+
+    # 查找最后一个斜杠的索引
+    last_slash_index = request_url.rfind("/")
+
+    # 截取字符串
+    substring = request_url[:last_slash_index + 1]
+
+    # 返回结果
+    return substring
+
+
 def _get_project_base_path():
     """获取项目根目录的绝对路径"""
     global this_project_base_path

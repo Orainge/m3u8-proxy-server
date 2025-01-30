@@ -4,14 +4,17 @@ import re
 import requests
 
 from route import service
-from route.consts.uri_param_name import URI_NAME_M3U8, URI_NAME_VIDEO
-from route.consts.url_type import URL_TYPE_M3U8, URL_TYPE_VIDEO
-from route.consts.url_type import accept_content_type_regex_list_m3u8, accept_content_type_regex_list_video
+from route.consts.uri_param_name import URI_NAME_M3U8, URI_NAME_MPD, URI_NAME_VIDEO
+from route.consts.url_type import URL_TYPE_M3U8, URL_TYPE_MPD, URL_TYPE_VIDEO
+from route.consts.url_type import accept_content_type_regex_list_m3u8, accept_content_type_regex_list_mpd, \
+    accept_content_type_regex_list_video
 from route.exception import NotSupportContentTypeError, RequestUrlError, RequestM3u8FileError
 from route.service import proxy as proxy_service
 from util import proxy as proxy_util
 from util import request as request_util
 from util.request import request_timeout
+from util.mpd import XMLFile
+from urllib.parse import urlparse, parse_qs
 
 
 def get_redirect_url(url, enable_proxy, server_name):
@@ -52,7 +55,7 @@ def get_redirect_url(url, enable_proxy, server_name):
             raise RequestUrlError(url=to_request_url, status_code=status_code, text=response.text)
 
     # 关闭流
-    response_text_first_line = response.text.splitlines()[0]
+    response_text = response.text
     response.close()
 
     if not request_success:
@@ -65,11 +68,6 @@ def get_redirect_url(url, enable_proxy, server_name):
     # 判断 URL 类型
     url_type = None
 
-    # 检查是否是 M3U8 文件
-    if response_text_first_line == "#EXTM3U":
-        # 响应里以 "#EXTM3U" 开头
-        url_type = URL_TYPE_M3U8
-
     # 检查 Content-Type
     content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
 
@@ -80,12 +78,34 @@ def get_redirect_url(url, enable_proxy, server_name):
                 url_type = URL_TYPE_M3U8
                 break
 
+    # 检查是否是 MPD 的 Content-Type
+    if url_type is None:
+        for regex in accept_content_type_regex_list_mpd:
+            if re.fullmatch(regex, content_type):
+                url_type = URL_TYPE_MPD
+                break
+
     # 检查是否是 Video 的 Content-Type
     if url_type is None:
         for regex in accept_content_type_regex_list_video:
             if re.fullmatch(regex, content_type):
                 url_type = URL_TYPE_VIDEO
                 break
+
+    # 检查是否是 M3U8 文件
+    if url_type is None:
+        if response_text.splitlines()[0] == "#EXTM3U":
+            url_type = URL_TYPE_M3U8
+
+    # 检查是否是 MPD 文件
+    if url_type is None:
+        try:
+            xml_file = XMLFile(response_text)
+            if xml_file.is_mpd_file():
+                url_type = URL_TYPE_MPD
+        except Exception:
+            # XML 解析失败
+            pass
 
     if url_type is None:
         # URL 不合法
@@ -105,6 +125,13 @@ def get_redirect_url(url, enable_proxy, server_name):
                                                URI_NAME_M3U8,
                                                server_name=server_name,
                                                enable_proxy=enable_proxy)
+    elif url_type is URL_TYPE_MPD:
+        proxy_url = service.generate_proxy_url(final_url,
+                                               URI_NAME_MPD,
+                                               server_name=server_name,
+                                               hide_server_name=True,
+                                               enable_proxy=enable_proxy,
+                                               query_params=parse_qs(urlparse(final_url).query))
     elif url_type is URL_TYPE_VIDEO:
         proxy_url = service.generate_proxy_url(final_url,
                                                URI_NAME_VIDEO,
