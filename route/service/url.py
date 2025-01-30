@@ -18,7 +18,7 @@ def get_redirect_url(url, enable_proxy, server_name):
     """
     获取跳转链接
     :param url: 原始非加密的 M3U8 文件 URL
-    :param enable_proxy: 是否启用代理访问视频文件
+    :param enable_proxy: 是否启用代理访问 M3U8 文件
     :param server_name: 服务器名称
     """
     # 先请求 URL，看看是什么类型的链接
@@ -52,6 +52,7 @@ def get_redirect_url(url, enable_proxy, server_name):
             raise RequestUrlError(url=to_request_url, status_code=status_code, text=response.text)
 
     # 关闭流
+    response_text_first_line = response.text.splitlines()[0]
     response.close()
 
     if not request_success:
@@ -61,15 +62,25 @@ def get_redirect_url(url, enable_proxy, server_name):
     # 拿到最后 URL（包括重定向后的 URL）
     final_url = to_request_url
 
-    # 判断  URL 类型
+    # 判断 URL 类型
     url_type = None
-    content_type = response.headers.get('Content-Type')
 
-    for regex in accept_content_type_regex_list_m3u8:
-        if re.fullmatch(regex, content_type):
-            url_type = URL_TYPE_M3U8
-            break
+    # 检查是否是 M3U8 文件
+    if response_text_first_line == "#EXTM3U":
+        # 响应里以 "#EXTM3U" 开头
+        url_type = URL_TYPE_M3U8
 
+    # 检查 Content-Type
+    content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
+
+    # 检查是否是 M3U8 的 Content-Type
+    if url_type is None:
+        for regex in accept_content_type_regex_list_m3u8:
+            if re.fullmatch(regex, content_type):
+                url_type = URL_TYPE_M3U8
+                break
+
+    # 检查是否是 Video 的 Content-Type
     if url_type is None:
         for regex in accept_content_type_regex_list_video:
             if re.fullmatch(regex, content_type):
@@ -77,7 +88,7 @@ def get_redirect_url(url, enable_proxy, server_name):
                 break
 
     if url_type is None:
-        # Content-Type 不合法
+        # URL 不合法
         raise NotSupportContentTypeError
 
     # 生成代理链接

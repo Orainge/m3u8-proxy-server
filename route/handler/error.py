@@ -3,6 +3,7 @@
 from flask import Flask, Response
 
 import server_config
+import traceback
 from exception import RouteError
 from route.util import response_json, response_json_error
 
@@ -82,6 +83,7 @@ def internal_server_error(e):
 
 
 def exception_error(e):
+    # traceback.print_exc()
     return response_json_error(
         message='Internal Server Error',
         data=f'{type(e).__name__}: {e}'

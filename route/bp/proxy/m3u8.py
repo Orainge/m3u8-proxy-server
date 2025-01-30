@@ -31,8 +31,8 @@ def proxy_m3u8_file(encrypt_url):
         raise UrlDecryptError()
 
     # 生成反代 M3U8 的链接
-    m3u8_response = proxy_service.get_m3u8_response(url, enable_proxy, server_name,
-                                                    enable_process_video_proxy=True)
+    m3u8_response = proxy_service.get_m3u8_response(url, enable_proxy, server_name)
+
     # 没有内容，抛出异常
     if m3u8_response is None:
         raise RequestM3u8FileError(url=url, message="无法请求指定文件")

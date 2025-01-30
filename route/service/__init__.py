@@ -17,7 +17,7 @@ def generate_proxy_url(url: str,
     :param uri: 生成 URL 时中间使用的 URI
     :param server_name: 服务器名称
     :param hide_server_name: 是否在生成的 URL 链接中隐藏服务器名称
-    :param enable_proxy: 是否启用代理访问视频文件
+    :param enable_proxy: 是否启用代理访问 M3U8 文件
     """
 
     # 将 url 进行加密

@@ -16,7 +16,7 @@ api_bp = Blueprint("api", __name__, url_prefix='/api')
 api_bp.register_blueprint(api_proxy_bp)
 
 # 是否启用 API
-enable_api = server_config.get_config(["security", "api", "enable"], False)
+enable_api = server_config.get_config(["service", "api", "enable"], False)
 api_token = server_config.api_token
 
 # 允许的请求时间戳和当前时间间隔（秒）

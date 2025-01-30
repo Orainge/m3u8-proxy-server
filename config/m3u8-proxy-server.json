@@ -10,22 +10,39 @@
     }
   },
   "security": {
-    "hideServer": true,
-    "urlEncryptOffset": {
-      "default": 0,
-      "rules": {
-        "backup": 15
-      }
-    },
     "api": {
-      "enable": true,
       "token": "TOKEN"
     },
+    "hideServer": true,
     "uri": {
       "proxy": "proxy",
       "url": "url",
       "m3u8": "m3u8",
       "video": "video"
+    },
+    "urlEncryptOffset": {
+      "default": 0,
+      "rules": {
+        "backup": 15
+      }
+    }
+  },
+  "service": {
+    "api": {
+      "enable": true
+    },
+    "proxy": {
+      "video": {
+        "enable": true,
+        "directUrl": {
+          "default": false,
+          "rules": {
+            "https?://default.example\\.com/.*": true,
+            "https?://none.example\\.com/.*": true,
+            "https?://.*\\.example\\.com/.*": true
+          }
+        }
+      }
     }
   },
   "request": {

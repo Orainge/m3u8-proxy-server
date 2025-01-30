@@ -33,7 +33,7 @@ def proxy_video_file(encrypt_url):
     response = proxy_service.proxy_video(url, enable_proxy)
 
     response_headers = {
-        'Content-Type': response.headers.get('Content-Type')
+        'Content-Type': response.headers.get('Content-Type') or response.headers.get('content-type')
     }
 
     # 构造结果

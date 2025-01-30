@@ -13,6 +13,7 @@ from util import m3u8 as m3u8_util
 from util import proxy as proxy_util
 from util import request as request_util
 from util import server as server_util
+from util import service as service_util
 from util.request import request_timeout
 
 
@@ -75,14 +76,12 @@ class M3u8Response:
 
 def get_m3u8_response(url: str,
                       enable_proxy: bool,
-                      server_name: str,
-                      enable_process_video_proxy: bool = True) -> M3u8Response:
+                      server_name: str) -> M3u8Response:
     """
     请求 M3U8 文件
     :param url: 原始非加密的 M3U8 文件 URL
-    :param enable_proxy: 是否启用代理访问视频文件
+    :param enable_proxy: 是否启用代理访问 M3U8 文件
     :param server_name: 服务器名称
-    :param enable_process_video_proxy: 是否代理视频流
     :return:
     """
     m3u8_response = None
@@ -90,7 +89,7 @@ def get_m3u8_response(url: str,
     # 递归查找最终含 ts 流的 M3U8 文件（指定层级）
     for i in range(m3u8_util.get_max_deep(url) + 1):
         m3u8_response = do_request_m3u8_file(url, enable_proxy)
-        judge_result = judge_final_m3u8_file(m3u8_response, enable_proxy, server_name, enable_process_video_proxy)
+        judge_result = judge_final_m3u8_file(m3u8_response, enable_proxy, server_name)
         if judge_result.is_final_m3u8_file:
             # 是最后一级，赋值
             m3u8_response.body = judge_result.body
@@ -107,7 +106,7 @@ def do_request_m3u8_file(url: str, enable_proxy: bool) -> M3u8Response:
     """
     请求 m3u8 文件
     :param url: 原始非加密的 M3U8 文件 URL
-    :param enable_proxy: 是否启用代理访问视频文件
+    :param enable_proxy: 是否启用代理访问 M3U8 文件
     :return:
     """
     # 请求，请求次数限制在设置的最大重定向次数
@@ -126,20 +125,31 @@ def do_request_m3u8_file(url: str, enable_proxy: bool) -> M3u8Response:
         status_code = response.status_code
         if status_code == 200:
             # 正常请求，返回结果
-            # 判断 Content-Type 是否是合法的
-            content_type = response.headers.get('Content-Type')
-            for regex in accept_content_type_regex_list_m3u8:
-                if re.fullmatch(regex, content_type):
-                    # Content-Type 合法，返回结果
-                    proxy_m3u8_response = M3u8Response()
-                    proxy_m3u8_response.response_object = response
-                    proxy_m3u8_response.real_url = to_request_url
-                    proxy_m3u8_response.body = response.text
-                    return proxy_m3u8_response
+            is_m3u8_file = False
 
-            # Content-Type 不合法
-            response.close()
-            raise NotSupportContentTypeError
+            # 判断是否是 M3U8 文件
+            if response.text.splitlines()[0] == "#EXTM3U":
+                # 响应里以 "#EXTM3U" 开头
+                is_m3u8_file = True
+            else:
+                # 判断 Content-Type 是否是合法的
+                content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
+                for regex in accept_content_type_regex_list_m3u8:
+                    if re.fullmatch(regex, content_type):
+                        # Content-Type 合法
+                        is_m3u8_file = True
+
+            if is_m3u8_file:
+                # 如果是 M3U8 文件
+                proxy_m3u8_response = M3u8Response()
+                proxy_m3u8_response.response_object = response
+                proxy_m3u8_response.real_url = to_request_url
+                proxy_m3u8_response.body = response.text
+                return proxy_m3u8_response
+            else:
+                # Content-Type 不合法
+                response.close()
+                raise NotSupportContentTypeError
         elif 300 <= status_code < 400:
             # 处理重定向
             to_request_url = response.headers["Location"]
@@ -153,14 +163,12 @@ def do_request_m3u8_file(url: str, enable_proxy: bool) -> M3u8Response:
 
 def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
                           enable_proxy: bool,
-                          server_name: str,
-                          enable_process_video_proxy: bool = True) -> JudgeFinalM3u8FileResult:
+                          server_name: str) -> JudgeFinalM3u8FileResult:
     """
     判断是否是最后一级 M3U8 文件
     :param proxy_m3u8_result: 获取代理 M3U8 文件的响应
     :param enable_proxy: 是否使用外部代理请求文件
     :param server_name: 服务器名称
-    :param enable_process_video_proxy: 是否代理视频流
     """
     judge_result = JudgeFinalM3u8FileResult()
     body = proxy_m3u8_result.body
@@ -172,8 +180,17 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
             judge_result.append_body_empty_line()
         elif line_str.startswith("#"):
             # "#" 开头的行 / 非 URL 行
+
+            # 特殊处理：标签 "#EXT-X-PREFETCH"
+            if line_str.startswith("#EXT-X-PREFETCH"):
+                video_url = line_str.split(":", 1)[1]
+                video_url = _process_video_url(proxy_m3u8_result, enable_proxy, video_url, url_prefix)
+                line_str = f"#EXT-X-PREFETCH:{video_url}"
+
+            # 附加行
             judge_result.append_body_line(line_str)
         elif ".m3u" in line_str:
+            # TODO 新增多轨道代理
             # 包含子 M3U8 文件，需要继续请求，退出循环
             judge_result.is_final_m3u8_file = False
 
@@ -191,38 +208,10 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
             # 退出循环
             break
         else:
-            if enable_process_video_proxy is not True:
-                # 不代理视频流，原样附加
-                judge_result.append_body_line(line_str)
-                continue
-
-            # 普通 TS 流文本行
-            # 判断文件 URL 情况
-            if line_str.startswith("http"):
-                # 如果文件 URL 开始于 http / https，直接使用
-                pass
-            else:
-                # 相对路径
-                if line_str.startswith("/"):
-                    # 如果开始于 "/" ，需要去掉这个斜杠
-                    line_str = line_str[1:]
-
-                # 对原始 URI 进行处理
-                line_str = line_str.replace('\r', '')  # 这个大坑，气死我了
-
-                # 拼接成代理 URL
-                line_str = url_prefix + encrypt_util.encrypt_string(
-                    f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{line_str}')
-
-                # 准备附加额外参数
-                query_params = {}
-
-                # 是否开启代理
-                if enable_proxy is True:
-                    query_params[ENABLE_PROXY] = "true"
-
-                # 拼接查询参数
-                line_str = request_util.append_query_params_to_url(line_str, query_params)
+            if service_util.enable_proxy_video:
+                # 代理视频流
+                # 处理 Video URL
+                line_str = _process_video_url(proxy_m3u8_result, enable_proxy, line_str, url_prefix)
 
             # 附加行
             judge_result.append_body_line(line_str)
@@ -231,11 +220,61 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
     return judge_result
 
 
+def _process_video_url(proxy_m3u8_result: M3u8Response,
+                       enable_proxy: bool,
+                       video_url: str,
+                       url_prefix: str) -> str:
+    """
+    处理 Video URL
+    :param proxy_m3u8_result: 获取代理 M3U8 文件的响应
+    :param enable_proxy: 是否使用外部代理请求文件
+    :param video_url: Video URL
+    :param url_prefix: URL 前缀
+    """
+    # 对原始 URI 进行处理
+    video_url = video_url.replace('\r', '')  # 这个大坑，气死我了
+
+    if video_url.startswith("http"):
+        # 绝对路径
+        is_relative_url = True
+
+        # 检查是否强制代理 M3U8 里面的 Video
+        if service_util.get_proxy_video_direct_url(video_url) is not True:
+            # 如果不强制代理，原样返回
+            return video_url
+    else:
+        # 相对路径
+        is_relative_url = False
+
+        # 如果开始于 "/" ，需要去掉这个斜杠
+        if video_url.startswith("/"):
+            video_url = video_url[1:]
+
+    # 拼接成代理 URL
+    if is_relative_url:
+        # 如果是相对路径 URL
+        video_url = url_prefix + encrypt_util.encrypt_string(
+            f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{video_url}')
+    else:
+        # 是绝对路径 URL
+        video_url = url_prefix + encrypt_util.encrypt_string(f'{video_url}')
+
+    # 准备附加额外参数
+    query_params = {}
+
+    # 是否开启代理
+    if enable_proxy is True:
+        query_params[ENABLE_PROXY] = "true"
+
+    # 拼接查询参数
+    return request_util.append_query_params_to_url(video_url, query_params)
+
+
 def proxy_video(url, enable_proxy) -> Response:
     """
     代理请求视频文件
     :param url: 原始非加密的视频 URL
-    :param enable_proxy: 是否启用代理访问视频文件
+    :param enable_proxy: 是否启用代理访问 M3U8 文件
     :param user_agent: 请求 User-Agent
     :return:
     """
@@ -250,7 +289,7 @@ def proxy_video(url, enable_proxy) -> Response:
                             stream=True)
 
     # 判断 Content-Type 是否是合法的
-    content_type = response.headers.get('Content-Type')
+    content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
     for regex in accept_content_type_regex_list_video:
         if re.fullmatch(regex, content_type):
             # Content-Type 合法，返回结果
