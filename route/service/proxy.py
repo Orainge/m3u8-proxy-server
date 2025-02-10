@@ -6,7 +6,9 @@ from flask import Response
 
 from route.consts.param_name import ENABLE_PROXY
 from route.consts.uri_param_name import URI_NAME_PROXY, URI_NAME_VIDEO
-from route.consts.url_type import accept_content_type_regex_list_m3u8, accept_content_type_regex_list_video
+from route.consts.url_type import (accept_content_type_regex_list_m3u8,
+                                   accept_content_type_regex_list_video,
+                                   accept_content_type_regex_list_stream)
 from route.exception import RequestM3u8FileError, NotSupportContentTypeError
 from util import encrypt as encrypt_util
 from util import m3u8 as m3u8_util
@@ -278,7 +280,7 @@ def proxy_video(url, enable_proxy) -> Response:
     :return:
     """
     # 执行请求并返回结果
-    # 这里允许直接跳转，因为播放是流示传输
+    # 这里允许直接跳转，因为播放是流式传输
     response = requests.get(url,
                             timeout=request_timeout,
                             headers={
@@ -290,6 +292,36 @@ def proxy_video(url, enable_proxy) -> Response:
     # 判断 Content-Type 是否是合法的
     content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
     for regex in accept_content_type_regex_list_video:
+        if re.fullmatch(regex, content_type):
+            # Content-Type 合法，返回结果
+            return response
+
+    # Content-Type 不合法
+    response.close()
+    raise NotSupportContentTypeError
+
+
+def proxy_stream(url, enable_proxy) -> Response:
+    """
+    代理请求流式传输文件
+    :param url: 原始非加密的流式传输文件 URL
+    :param enable_proxy: 是否启用代理访问 M3U8 文件
+    :param user_agent: 请求 User-Agent
+    :return:
+    """
+    # 执行请求并返回结果
+    # 这里允许直接跳转，因为播放是流式传输
+    response = requests.get(url,
+                            timeout=request_timeout,
+                            headers={
+                                'User-Agent': request_util.get_user_agent(url),
+                            },
+                            proxies=proxy_util.get_proxies(url, enable_proxy),
+                            stream=True)
+
+    # 判断 Content-Type 是否是合法的
+    content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
+    for regex in accept_content_type_regex_list_stream:
         if re.fullmatch(regex, content_type):
             # Content-Type 合法，返回结果
             return response

@@ -19,7 +19,8 @@
       "url": "url",
       "m3u8": "m3u8",
       "mpd": "mpd",
-      "video": "video"
+      "video": "video",
+      "stream": "stream"
     },
     "urlEncryptOffset": {
       "default": 0,

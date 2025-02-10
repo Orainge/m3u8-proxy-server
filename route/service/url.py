@@ -4,10 +4,10 @@ import re
 import requests
 
 from route import service
-from route.consts.uri_param_name import URI_NAME_M3U8, URI_NAME_MPD, URI_NAME_VIDEO
-from route.consts.url_type import URL_TYPE_M3U8, URL_TYPE_MPD, URL_TYPE_VIDEO
+from route.consts.uri_param_name import URI_NAME_M3U8, URI_NAME_MPD, URI_NAME_VIDEO, URI_NAME_STREAM
+from route.consts.url_type import URL_TYPE_M3U8, URL_TYPE_MPD, URL_TYPE_VIDEO, URL_TYPE_STREAM
 from route.consts.url_type import accept_content_type_regex_list_m3u8, accept_content_type_regex_list_mpd, \
-    accept_content_type_regex_list_video
+    accept_content_type_regex_list_video, accept_content_type_regex_list_stream
 from route.exception import NotSupportContentTypeError, RequestUrlError, RequestM3u8FileError
 from route.service import proxy as proxy_service
 from util import proxy as proxy_util
@@ -54,22 +54,28 @@ def get_redirect_url(url, enable_proxy, server_name):
             # 不正常的请求，抛出异常
             raise RequestUrlError(url=to_request_url, status_code=status_code, text=response.text)
 
+    # 变量赋值
+    url_type = None
+    response_text = ""
+    content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
+    final_url = to_request_url  # 拿到最后 URL（包括重定向后的 URL）
+
+    # 先检查是否是流式传输的 Content-Type
+    for regex in accept_content_type_regex_list_stream:
+        if re.fullmatch(regex, content_type):
+            url_type = URL_TYPE_STREAM
+            break
+
+    if url_type is None:
+        # 如果是流式传输会卡住不动，所以要先判断再获取
+        response_text = response.text
+
     # 关闭流
-    response_text = response.text
     response.close()
 
-    if not request_success:
+    if request_success is not True:
         # 抛出异常：请求次数超过设置的最大重定向次数
         raise RequestUrlError(message="请求次数超过设置的最大重定向次数", url=url)
-
-    # 拿到最后 URL（包括重定向后的 URL）
-    final_url = to_request_url
-
-    # 判断 URL 类型
-    url_type = None
-
-    # 检查 Content-Type
-    content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
 
     # 检查是否是 M3U8 的 Content-Type
     if url_type is None:
@@ -135,6 +141,12 @@ def get_redirect_url(url, enable_proxy, server_name):
     elif url_type is URL_TYPE_VIDEO:
         proxy_url = service.generate_proxy_url(final_url,
                                                URI_NAME_VIDEO,
+                                               server_name=server_name,
+                                               hide_server_name=True,
+                                               enable_proxy=enable_proxy)
+    elif url_type is URL_TYPE_STREAM:
+        proxy_url = service.generate_proxy_url(final_url,
+                                               URI_NAME_STREAM,
                                                server_name=server_name,
                                                hide_server_name=True,
                                                enable_proxy=enable_proxy)

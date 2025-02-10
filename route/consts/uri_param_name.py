@@ -16,3 +16,6 @@ URI_NAME_MPD = get_config(["security", "uri", "mpd"], 'mpd')
 
 # 使用代理服务的 URI：视频文件
 URI_NAME_VIDEO = get_config(["security", "uri", "video"], 'video')
+
+# 使用代理服务的 URI：流式传输
+URI_NAME_STREAM = get_config(["security", "uri", "stream"], 'stream')
