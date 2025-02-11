@@ -17,4 +17,4 @@ accept_content_type_regex_list_mpd = ['application/dash']
 accept_content_type_regex_list_video = ['^video\\/.*$']
 
 # 允许的流式传输 Content-Type 类型
-accept_content_type_regex_list_stream = ['application\\/octet-stream']
+accept_content_type_regex_list_stream = ['application\\/octet-stream', 'video\\/x-flv']
