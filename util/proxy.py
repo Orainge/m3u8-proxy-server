@@ -19,7 +19,7 @@ def get_proxy_server_url(url: str, enable_proxy: bool = False) -> str | None:
     :return: None: 不开启代理; str: 命中的第一个规则对应的服务器 URL，如果没有匹配到则返回默认服务器 URL
     """
     # 判断总开关是否打开
-    if not config_enable_proxy:
+    if config_enable_proxy is not True:
         return None
 
     # 在没有开启规则匹配的情况下，也没有要求用代理请求
