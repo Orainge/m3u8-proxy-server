@@ -10,6 +10,13 @@ force_enable_rules = server_config.get_config(["proxy", "server", "forceEnableRu
 default_proxy_server_url = server_config.get_config(["proxy", "server", "default"], None)  # 默认代理服务器 URL
 proxy_server_rules_dict = server_config.get_config(["proxy", "server", "rules"], {})  # 代理服务器规则
 
+# 默认不代理本地地址
+localhost_addr = ['127\\.0\\.0\\.1', 'localhost']
+
+for addr in localhost_addr:
+    if addr not in proxy_server_rules_dict:
+        proxy_server_rules_dict[addr] = "none"
+
 
 def get_proxy_server_url(url: str, enable_proxy: bool = False) -> str | None:
     """

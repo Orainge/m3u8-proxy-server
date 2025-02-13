@@ -45,6 +45,17 @@
           }
         }
       },
+      "m3u8": {
+        "enable": true,
+        "directUrl": {
+          "default": false,
+          "rules": {
+            "https?://default.example\\.com/.*": true,
+            "https?://none.example\\.com/.*": true,
+            "https?://.*\\.example\\.com/.*": true
+          }
+        }
+      },
       "video": {
         "enable": true,
         "directUrl": {

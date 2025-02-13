@@ -120,7 +120,12 @@ def get_redirect_url(url, enable_proxy, server_name):
     # 生成代理链接
     if url_type is URL_TYPE_M3U8:
         # 寻找真正的 M3U8 链接
-        m3u8_response = proxy_service.get_m3u8_response(final_url, enable_proxy, server_name)
+        m3u8_response = proxy_service.get_m3u8_response(
+            final_url,
+            enable_proxy,
+            server_name,
+            check_mode=True
+        )
 
         if m3u8_response is None:
             raise RequestM3u8FileError(url=url, message="无法请求指定文件")

@@ -1,25 +1,39 @@
 # M3U8 代理服务
 
+## 1 项目说明
+
 该项目可代理多种流媒体格式，包括：
 
-- M3U8 文件（支持多级 M3U8 文件，但不支持多轨道 M3U8 文件）
-- 流式传输的视频（application/octet-stream; video/x-flv）
-- MPD 文件 (application/dash)
+- M3U8 文件（支持 **多级、多轨道 ** M3U8 文件）
+- 视频文件
+- 流式传输的视频
+- **MPD 文件**
 
-使用场景：
+### 1.1 使用场景
 
 - 某些客户端没有 IPV6 地址，可以将本项目部署到有 IPV6 地址的主机进行反代。
-- 某些需要特定网络环境才能访问的 M3U8 文件，可以统一在一台主机管理。
+- 某些 URL 需要特定网络环境才能访问，可以统一在一台主机管理。
 
-## 1 接口文档
+### 1.2 支持的格式
 
-见文档：`docs/接口文档.md`
+> 如需自定义 Content-Type，可修改文件中的代码：[route/consts/url_type.py](route/consts/url_type.py)
 
-## 2 安装依赖
+| 文件类型       | 支持的 Content-Type（正则表达式）                            |
+| -------------- | ------------------------------------------------------------ |
+| M3U8 文件      | `'application\\/octet-stream', '^(audio|application)\\/(vnd\\.apple\\.|x-)*(m|M)(p|P)(e|E)(g|G)(u|U)(r|R)(l|L)$'` |
+| 视频文件       | `'application\\/octet-stream', '^video\\/.*$'`               |
+| 流式传输的视频 | `'application\\/octet-stream', 'video\\/x-flv'`              |
+| MPD 文件       | `'application\\/octet-stream', 'application/dash'`           |
 
-`pip install -r requirements.txt`
+## 2 项目启动
 
-## 3 启动命令
+### 2.1 安装依赖
+
+```shell
+pip install -r requirements.txt
+```
+
+### 2.2 启动命令
 
 1. gunicorn启动
 
@@ -43,13 +57,31 @@
    /usr/bin/python3 -u m3u8ProxyServer.py >> run.log 2>&1 &
    ```
 
-3. 使用 `monitor/monitor.sh` 脚本启动。
+### 2.3 监控脚本
+
+使用 `monitor/monitor.sh` 脚本启动。
 
    - 该脚本可以用于 crontab 监控运行检查服务运行是否正常。
    - 使用前需要修改脚本里的文件夹路径。
 
-## 4 配置文件说明
+## 3 技术文档
 
-见文档：`docs/配置文件说明.md`
+- [接口文档](docs/接口文档.md)
+- [配置文件说明](docs/配置文件说明.md)
 
-注意：MPD代理会使用默认服务器地址，不支持其它自定义地址，务必填写正确。
+### 4 其他说明
+
+- **默认不代理本地地址(127.0.0.1/localhost)，如有需要请在配置文件添加以下规则：**
+
+  ```json
+  {
+    "proxy": {
+      "server": {
+        "rules": {
+          "127\\.0\\.0\\.1": "default",
+          "localhost": "default"
+        }
+      }
+    }
+  }
+  ```

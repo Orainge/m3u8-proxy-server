@@ -36,7 +36,7 @@ def get_mpd_response(url: str,
         # 检查是否是绝对路径
         if base_url.startswith("http"):
             # 绝对路径，检查是否强制代理
-            if service_util.get_proxy_mpd_direct_url(base_url):
+            if service_util.get_enable_proxy_mpd_direct_url(base_url):
                 # 启用强制代理
                 if not base_url.endswith("/"):
                     base_url += '/'
