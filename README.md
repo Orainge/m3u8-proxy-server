@@ -4,7 +4,7 @@
 
 该项目可代理多种流媒体格式，包括：
 
-- M3U8 文件（支持 **多级、多轨道 ** M3U8 文件）
+- M3U8 文件（支持 **多级、多轨道** M3U8 文件）
 - 视频文件
 - 流式传输的视频
 - **MPD 文件**
@@ -18,12 +18,12 @@
 
 > 如需自定义 Content-Type，可修改文件中的代码：[route/consts/url_type.py](route/consts/url_type.py)
 
-| 文件类型       | 支持的 Content-Type（正则表达式）                            |
-| -------------- | ------------------------------------------------------------ |
-| M3U8 文件      | `'application\\/octet-stream', '^(audio|application)\\/(vnd\\.apple\\.|x-)*(m|M)(p|P)(e|E)(g|G)(u|U)(r|R)(l|L)$'` |
-| 视频文件       | `'application\\/octet-stream', '^video\\/.*$'`               |
-| 流式传输的视频 | `'application\\/octet-stream', 'video\\/x-flv'`              |
-| MPD 文件       | `'application\\/octet-stream', 'application/dash'`           |
+| 文件类型       | 支持的 Content-Type（正则表达式）                           |
+| -------------- | ----------------------------------------------------------- |
+| M3U8 文件      | 见文件 [route/consts/url_type.py](route/consts/url_type.py) |
+| 视频文件       | `'application\\/octet-stream', '^video\\/.*$'`              |
+| 流式传输的视频 | `'application\\/octet-stream', 'video\\/x-flv'`             |
+| MPD 文件       | `'application\\/octet-stream', 'application/dash'`          |
 
 ## 2 项目启动
 
