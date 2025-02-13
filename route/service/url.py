@@ -26,17 +26,17 @@ def get_redirect_url(url, enable_proxy, server_name):
     """
     # 先请求 URL，看看是什么类型的链接
     request_success = False  # 请求是否成功
-    to_request_url = url
-    max_redirect_times = request_util.get_max_redirect_times(url)
     response = None
-    for i in range(max_redirect_times + 1):
+    to_request_url = url
+
+    for i in range(request_util.get_max_redirect_times(url) + 1):
         response = requests.get(to_request_url,
                                 timeout=request_timeout,
                                 headers={
-                                    'User-Agent': request_util.get_user_agent(url)
+                                    'User-Agent': request_util.get_user_agent(to_request_url)
                                 },
                                 allow_redirects=False,
-                                proxies=proxy_util.get_proxies(url, enable_proxy),
+                                proxies=proxy_util.get_proxies(to_request_url, enable_proxy),
                                 stream=True)
 
         # 获取请求结果 code，根据请求结果 code 进行判断

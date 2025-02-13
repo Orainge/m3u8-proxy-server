@@ -18,8 +18,12 @@ from util import server as server_util
 from util import service as service_util
 from util.request import request_timeout
 
-
 # match = re.fullmatch("正则表达式", "测试字符串")
+
+# 行类型
+LINE_TYPE_NORMAL = '0'  # 普通行
+LINE_TYPE_EXTINF = '1'  # #EXTINF
+LINE_TYPE_STREAM_INF = '2'  # #EXT-X-STREAM-INF
 
 
 class JudgeFinalM3u8FileResult:
@@ -176,23 +180,34 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
     body = proxy_m3u8_result.body
     url_prefix = server_util.get_server_url(server_name) + f'/{URI_NAME_PROXY}/{URI_NAME_VIDEO}/'
 
-    for line_str in body.split("\n"):
-        if len(line_str) == 0:
-            # 空行
-            judge_result.append_body_empty_line()
-        elif line_str.startswith("#"):
-            # "#" 开头的行 / 非 URL 行
-            # 特殊处理：标签 "#EXT-X-PREFETCH"
-            if line_str.startswith("#EXT-X-PREFETCH"):
-                video_url = line_str.split(":", 1)[1]
-                video_url = _process_video_url(proxy_m3u8_result, enable_proxy, video_url, url_prefix)
-                line_str = f"#EXT-X-PREFETCH:{video_url}"
+    # 设置当前行类型
+    line_type = LINE_TYPE_NORMAL
 
-            # 附加行
-            judge_result.append_body_line(line_str)
-        elif ".m3u" in line_str:
+    for line_str in body.split("\n"):
+        # 去除多余的换行符（如果有）
+        line_str = line_str.replace('\r', '')  # 这个大坑，气死我了
+
+        if line_type == LINE_TYPE_NORMAL:
+            # 普通行
+            if line_str.startswith("#"):
+                # 可能是标签行/注释
+                if line_str.startswith("#EXT-X-STREAM-INF"):
+                    # 下一行是可变视频流(多轨道)
+                    line_type = LINE_TYPE_STREAM_INF
+                elif line_str.startswith("#EXTINF"):
+                    # 下一行是视频分片
+                    line_type = LINE_TYPE_EXTINF
+                elif line_str.startswith("#EXT-X-PREFETCH"):
+                    line_type = LINE_TYPE_NORMAL
+                    video_url = line_str.split(":", 1)[1]
+                    video_url = _process_video_url(proxy_m3u8_result, enable_proxy, video_url, url_prefix)
+                    line_str = f"#EXT-X-PREFETCH:{video_url}"
+        elif line_type == LINE_TYPE_STREAM_INF:
+            # 可变视频流(多轨道)
+            line_type = LINE_TYPE_NORMAL
+
             # TODO 新增多轨道代理
-            # 包含子 M3U8 文件，需要继续请求，退出循环
+            # 包含子 M3U8 文件，需要继续请求
             judge_result.is_final_m3u8_file = False
 
             # 判断子 M3U8 文件 URL 情况
@@ -206,16 +221,18 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
                     line_str = line_str[1:]
                 judge_result.m3u8_url = f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{line_str}'
 
-            # 退出循环
+            # 退出循环 (多轨道代理不需要退出循环)
             break
-        else:
+        elif line_type == LINE_TYPE_EXTINF:
+            # 视频分片
+            line_type = LINE_TYPE_NORMAL
             if service_util.enable_proxy_video:
                 # 代理视频流
                 # 处理 Video URL
                 line_str = _process_video_url(proxy_m3u8_result, enable_proxy, line_str, url_prefix)
 
-            # 附加行
-            judge_result.append_body_line(line_str)
+        # 这一行处理完成，附加当前这一行
+        judge_result.append_body_line(line_str)
 
     # 返回结果
     return judge_result
@@ -232,9 +249,6 @@ def _process_video_url(proxy_m3u8_result: M3u8Response,
     :param video_url: Video URL
     :param url_prefix: URL 前缀
     """
-    # 对原始 URI 进行处理
-    video_url = video_url.replace('\r', '')  # 这个大坑，气死我了
-
     if video_url.startswith("http"):
         # 绝对路径
         is_direct_url = True
