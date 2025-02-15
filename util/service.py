@@ -18,6 +18,13 @@ enable_proxy_m3u8 = server_config.get_config(["service", "proxy", "m3u8", "enabl
 default_proxy_m3u8_direct_url = server_config.get_config(["service", "proxy", "m3u8", "directUrl", "enable"], False)
 proxy_m3u8_direct_url_rules_dict = server_config.get_config(["service", "proxy", "m3u8", "directUrl", "rules"], {})
 
+# 是否启用 m3u8 KEY 文件的代理服务
+enable_proxy_key = server_config.get_config(["service", "proxy", "key", "enable"], True)
+
+# 是否开启对直链 URL 的代理服务
+default_proxy_key_direct_url = server_config.get_config(["service", "proxy", "key", "directUrl", "enable"], False)
+proxy_key_direct_url_rules_dict = server_config.get_config(["service", "proxy", "key", "directUrl", "rules"], {})
+
 # 是否启用视频流代理服务
 enable_proxy_video = server_config.get_config(["service", "proxy", "video", "enable"], True)
 
@@ -42,6 +49,22 @@ def get_enable_proxy_mpd_direct_url(url: str) -> int:
     return default_proxy_mpd_direct_url
 
 
+def get_enable_proxy_key_direct_url(url: str) -> int:
+    """
+    检查待访问的 ** M3U8 KEY URL ** 是否强制代理
+    :param url: 待访问的 ** M3U8 URL **
+    :return: M3U8 最深层级
+    """
+    # 根据正则表达式寻找 M3U8 最深层级
+    for regex, value in proxy_key_direct_url_rules_dict.items():
+        if re.search(regex, url):
+            # 找到匹配规则
+            return value
+
+    # 返回默认值
+    return default_proxy_key_direct_url
+
+
 def get_enable_proxy_m3u8_direct_url(url: str) -> int:
     """
     检查待访问的 ** M3U8 URL ** 是否强制代理
@@ -55,7 +78,7 @@ def get_enable_proxy_m3u8_direct_url(url: str) -> int:
             return value
 
     # 返回默认值
-    return default_proxy_video_direct_url
+    return default_proxy_m3u8_direct_url
 
 
 def get_enable_proxy_video_direct_url(url: str) -> int:

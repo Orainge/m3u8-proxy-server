@@ -1,11 +1,13 @@
 # 代理服务
 
 import re
+from urllib.parse import urlparse, parse_qs, urlencode
+
 import requests
 from flask import Response
 
 from route.consts.param_name import ENABLE_PROXY
-from route.consts.uri_param_name import URI_NAME_PROXY, URI_NAME_URL, URI_NAME_VIDEO
+from route.consts.uri_param_name import URI_NAME_PROXY, URI_NAME_URL, URI_NAME_VIDEO, URI_NAME_KEY
 from route.consts.url_type import (accept_content_type_regex_list_m3u8,
                                    accept_content_type_regex_list_video,
                                    accept_content_type_regex_list_stream)
@@ -70,8 +72,11 @@ class M3u8Response:
         if self.real_url is None or len(self.real_url) == 0:
             return ''
 
+        # 截取 ? 前的部分
+        find_root_url = self.real_url.split('?')[0]
+
         # 查找最后一个斜杠的索引
-        last_slash_index = self.real_url.rfind("/")
+        last_slash_index = find_root_url.rfind("/")
 
         # 截取字符串
         substring = self.real_url[:last_slash_index + 1]
@@ -96,8 +101,20 @@ def get_m3u8_response(url: str,
 
     # 递归查找最终含 ts 流的 M3U8 文件（指定层级）
     for i in range(m3u8_util.get_max_deep(url) + 1):
+        # 获取 Query 参数
+        parsed_url = urlparse(url)
+        query_param = parse_qs(parsed_url.query)
+        if len(query_param) == 0:
+            url_query_param_string = None
+        else:
+            url_query_param_string = urlencode(query_param, doseq=True)
+
         m3u8_response = do_request_m3u8_file(url, enable_proxy)
-        judge_result = judge_final_m3u8_file(m3u8_response, enable_proxy, server_name, check_mode=check_mode)
+        judge_result = judge_final_m3u8_file(m3u8_response,
+                                             enable_proxy,
+                                             server_name,
+                                             url_query_param_string=url_query_param_string,
+                                             check_mode=check_mode)
         if judge_result.is_final_m3u8_file:
             # 是最后一级，赋值
             m3u8_response.body = judge_result.body
@@ -169,20 +186,41 @@ def do_request_m3u8_file(url: str, enable_proxy: bool) -> M3u8Response:
     raise RequestM3u8FileError(message="请求次数超过设置的最大重定向次数", url=url)
 
 
+def _get_uri(line_str: str) -> str | None:
+    """
+    获取 URI
+    :param line_str: 一行字符串
+    :return 提取出来的 URI
+    """
+    pattern = r'URI="([^"]+)"'
+
+    # 使用 re.search 查找匹配项
+    match = re.search(pattern, line_str)
+
+    if match:
+        uri = match.group(1)
+        return uri
+    else:
+        return None
+
+
 def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
                           enable_proxy: bool,
                           server_name: str,
+                          url_query_param_string: str = None,
                           check_mode: bool = False) -> JudgeFinalM3u8FileResult:
     """
     判断是否是最后一级 M3U8 文件
     :param proxy_m3u8_result: 获取代理 M3U8 文件的响应
     :param enable_proxy: 是否使用外部代理请求文件
     :param server_name: 服务器名称
+    :param url_query_param_string: 原始 URL 携带的 Query 参数 String (?后面的部分)
     :param check_mode: 是否是检查模式，在检查模式下，不会对 M3U8 文件进行深层次处理
     """
     judge_result = JudgeFinalM3u8FileResult()
     body = proxy_m3u8_result.body
     url_prefix = server_util.get_server_url(server_name) + f'/{URI_NAME_PROXY}/'
+    key_url_prefix = url_prefix + f'{URI_NAME_KEY}/'
     m3u8_url_prefix = url_prefix + f'{URI_NAME_URL}/'
     video_url_prefix = url_prefix + f'{URI_NAME_VIDEO}/'
 
@@ -207,12 +245,49 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
                 elif line_str.startswith("#EXTINF"):
                     # 下一行是视频分片
                     line_type = LINE_TYPE_EXTINF
+                elif line_str.startswith("#EXT-X-MEDIA"):
+                    line_type = LINE_TYPE_NORMAL
+
+                    uri = _get_uri(line_str)
+                    if uri is not None:
+                        # 记录轨道
+                        stream_count += 1
+                        if check_mode is False and service_util.enable_proxy_m3u8:
+                            # 代理 M3U8
+                            process_uri = _process_m3u8_url(proxy_m3u8_result,
+                                                            enable_proxy,
+                                                            uri,
+                                                            m3u8_url_prefix,
+                                                            url_query_param_string=url_query_param_string)
+
+                            # 将代理的 URI 放入到原来的位置
+                            line_str = line_str.replace(uri, process_uri)
+                elif line_str.startswith("#EXT-X-KEY"):
+                    # M3U8 KEY
+                    line_type = LINE_TYPE_NORMAL
+
+                    uri = _get_uri(line_str)
+                    if uri is not None:
+                        if check_mode is False and service_util.enable_proxy_m3u8:
+                            # 代理 M3U8
+                            process_uri = _process_key_url(proxy_m3u8_result,
+                                                           enable_proxy,
+                                                           uri,
+                                                           key_url_prefix,
+                                                           url_query_param_string=url_query_param_string)
+
+                            # 将代理的 KEY URI 放入到原来的位置
+                            line_str = line_str.replace(uri, process_uri)
                 elif line_str.startswith("#EXT-X-PREFETCH"):
                     line_type = LINE_TYPE_NORMAL
 
                     if check_mode is False:
                         video_url = line_str.split(":", 1)[1]
-                        video_url = _process_video_url(proxy_m3u8_result, enable_proxy, video_url, video_url_prefix)
+                        video_url = _process_video_url(proxy_m3u8_result,
+                                                       enable_proxy,
+                                                       video_url,
+                                                       video_url_prefix,
+                                                       url_query_param_string=url_query_param_string)
                         line_str = f"#EXT-X-PREFETCH:{video_url}"
         elif line_type == LINE_TYPE_STREAM_INF:
             # 可变视频流(多轨道)
@@ -224,13 +299,21 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
 
             if check_mode is False and service_util.enable_proxy_m3u8:
                 # 代理 M3U8
-                line_str = _process_m3u8_url(proxy_m3u8_result, enable_proxy, line_str, m3u8_url_prefix)
+                line_str = _process_m3u8_url(proxy_m3u8_result,
+                                             enable_proxy,
+                                             line_str,
+                                             m3u8_url_prefix,
+                                             url_query_param_string=url_query_param_string)
         elif line_type == LINE_TYPE_EXTINF:
             # 视频分片
             line_type = LINE_TYPE_NORMAL
             if check_mode is False and service_util.enable_proxy_video:
                 # 代理视频流
-                line_str = _process_video_url(proxy_m3u8_result, enable_proxy, line_str, video_url_prefix)
+                line_str = _process_video_url(proxy_m3u8_result,
+                                              enable_proxy,
+                                              line_str,
+                                              video_url_prefix,
+                                              url_query_param_string=url_query_param_string)
 
         # 这一行处理完成，附加当前这一行
         judge_result.append_body_line(line_str)
@@ -254,16 +337,74 @@ def judge_final_m3u8_file(proxy_m3u8_result: M3u8Response,
     return judge_result
 
 
+def _process_key_url(proxy_m3u8_result: M3u8Response,
+                     enable_proxy: bool,
+                     key_url: str,
+                     key_url_prefix: str,
+                     url_query_param_string: str = None) -> str:
+    """
+    处理 M3U8 URL
+    :param proxy_m3u8_result: 获取代理 M3U8 文件的响应
+    :param enable_proxy: 是否使用外部代理请求文件
+    :param key_url: M3U8 URL
+    :param key_url_prefix: URL 前缀
+    :param url_query_param_string: 原始 URL 携带的 Query 参数 String (?后面的部分)
+    :return 处理后的 URL
+    """
+    if key_url.startswith("http"):
+        # 绝对路径
+        is_direct_url = True
+
+        # 检查是否强制代理 M3U8 里面的 M3U8 轨道
+        if service_util.get_enable_proxy_key_direct_url(key_url) is not True:
+            # 如果不强制代理，原样返回
+            return key_url
+    else:
+        # 相对路径
+        is_direct_url = False
+
+        # 如果开始于 "/" ，需要去掉这个斜杠
+        if key_url.startswith("/"):
+            key_url = key_url[1:]
+
+    # 拼接 Query 参数
+    full_key_url = key_url
+    if url_query_param_string is not None:
+        full_key_url += "?" + url_query_param_string
+
+    # 拼接成代理 URL
+    if is_direct_url:
+        # 如果是绝对路径 URL
+        key_url = key_url_prefix + encrypt_util.encrypt_string(f'{full_key_url}')
+    else:
+        # 如果是相对路径 URL
+        key_url = key_url_prefix + encrypt_util.encrypt_string(
+            f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{full_key_url}')
+
+    # 准备附加额外参数
+    query_params = {}
+
+    # 是否开启代理
+    if enable_proxy is True:
+        query_params[ENABLE_PROXY] = "true"
+
+    # 拼接查询参数
+    return request_util.append_query_params_to_url(key_url, query_params)
+
+
 def _process_m3u8_url(proxy_m3u8_result: M3u8Response,
                       enable_proxy: bool,
                       m3u8_url: str,
-                      m3u8_url_prefix: str) -> str:
+                      m3u8_url_prefix: str,
+                      url_query_param_string: str = None) -> str:
     """
     处理 M3U8 URL
     :param proxy_m3u8_result: 获取代理 M3U8 文件的响应
     :param enable_proxy: 是否使用外部代理请求文件
     :param m3u8_url: M3U8 URL
     :param m3u8_url_prefix: URL 前缀
+    :param url_query_param_string: 原始 URL 携带的 Query 参数 String (?后面的部分)
+    :return 处理后的 URL
     """
     if m3u8_url.startswith("http"):
         # 绝对路径
@@ -281,14 +422,19 @@ def _process_m3u8_url(proxy_m3u8_result: M3u8Response,
         if m3u8_url.startswith("/"):
             m3u8_url = m3u8_url[1:]
 
+    # 拼接 Query 参数
+    full_m3u8_url = m3u8_url
+    if url_query_param_string is not None:
+        full_m3u8_url += "?" + url_query_param_string
+
     # 拼接成代理 URL
     if is_direct_url:
         # 如果是绝对路径 URL
-        m3u8_url = m3u8_url_prefix + encrypt_util.encrypt_string(f'{m3u8_url}')
+        m3u8_url = m3u8_url_prefix + encrypt_util.encrypt_string(f'{full_m3u8_url}')
     else:
         # 如果是相对路径 URL
         m3u8_url = m3u8_url_prefix + encrypt_util.encrypt_string(
-            f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{m3u8_url}')
+            f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{full_m3u8_url}')
 
     # 准备附加额外参数
     query_params = {}
@@ -304,13 +450,15 @@ def _process_m3u8_url(proxy_m3u8_result: M3u8Response,
 def _process_video_url(proxy_m3u8_result: M3u8Response,
                        enable_proxy: bool,
                        video_url: str,
-                       video_url_prefix: str) -> str:
+                       video_url_prefix: str,
+                       url_query_param_string: str = None) -> str:
     """
     处理 Video URL
     :param proxy_m3u8_result: 获取代理 M3U8 文件的响应
     :param enable_proxy: 是否使用外部代理请求文件
     :param video_url: Video URL
     :param video_url_prefix: URL 前缀
+    :param url_query_param_string: 原始 URL 携带的 Query 参数 String (?后面的部分)
     """
     if video_url.startswith("http"):
         # 绝对路径
@@ -328,14 +476,19 @@ def _process_video_url(proxy_m3u8_result: M3u8Response,
         if video_url.startswith("/"):
             video_url = video_url[1:]
 
+    # 拼接 Query 参数
+    full_video_url = video_url
+    if url_query_param_string is not None:
+        full_video_url += "?" + url_query_param_string
+
     # 拼接成代理 URL
     if is_direct_url:
         # 如果是绝对路径 URL
-        video_url = video_url_prefix + encrypt_util.encrypt_string(f'{video_url}')
+        video_url = video_url_prefix + encrypt_util.encrypt_string(f'{full_video_url}')
     else:
         # 如果是相对路径 URL
         video_url = video_url_prefix + encrypt_util.encrypt_string(
-            f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{video_url}')
+            f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{full_video_url}')
 
     # 准备附加额外参数
     query_params = {}
@@ -378,11 +531,31 @@ def proxy_video(url, enable_proxy) -> Response:
     raise NotSupportContentTypeError
 
 
+def proxy_key(url, enable_proxy) -> Response:
+    """
+    代理请求 M3U8 KEY 文件
+    :param url: 原始非加密的视频 URL
+    :param enable_proxy: 是否启用代理访问 M3U8 文件
+    :param user_agent: 请求 User-Agent
+    :return:
+    """
+    response = requests.get(url,
+                            timeout=request_timeout,
+                            headers={
+                                'User-Agent': request_util.get_user_agent(url),
+                            },
+                            proxies=proxy_util.get_proxies(url, enable_proxy),
+                            stream=True)
+
+    # 不校验 KEY 文件 Content-Type 类型
+    return response
+
+
 def proxy_stream(url, enable_proxy) -> Response:
     """
     代理请求流式传输文件
     :param url: 原始非加密的流式传输文件 URL
-    :param enable_proxy: 是否启用代理访问 M3U8 文件
+    :param enable_proxy: 是否启用代理访问流式传输文件
     :param user_agent: 请求 User-Agent
     :return:
     """

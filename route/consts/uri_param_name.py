@@ -11,6 +11,9 @@ URI_NAME_URL = get_config(["security", "uri", "url"], 'url')
 # 代理服务使用的 URI：M3U8 文件
 URI_NAME_M3U8 = get_config(["security", "uri", "m3u8"], 'm3u8')
 
+# 代理服务使用的 URI：M3U8 KEY 文件
+URI_NAME_KEY = get_config(["security", "uri", "key"], 'key')
+
 # 代理服务使用的 URI：M3U8 文件
 URI_NAME_MPD = get_config(["security", "uri", "mpd"], 'mpd')
 
