@@ -351,45 +351,57 @@ def _process_key_url(proxy_m3u8_result: M3u8Response,
     :param url_query_param_string: 原始 URL 携带的 Query 参数 String (?后面的部分)
     :return 处理后的 URL
     """
+    url_type = '0'  # 0: 绝对路径 1: 相对路径 2: 其他协议
     if key_url.startswith("http"):
         # 绝对路径
-        is_direct_url = True
+        url_type = '0'
 
         # 检查是否强制代理 M3U8 里面的 M3U8 轨道
         if service_util.get_enable_proxy_key_direct_url(key_url) is not True:
             # 如果不强制代理，原样返回
             return key_url
+    elif "://" in key_url:
+        # 其他协议，不处理
+        url_type = '2'
+        pass
     else:
         # 相对路径
-        is_direct_url = False
+        url_type = '1'
 
         # 如果开始于 "/" ，需要去掉这个斜杠
         if key_url.startswith("/"):
             key_url = key_url[1:]
 
-    # 拼接 Query 参数
-    full_key_url = key_url
-    if url_query_param_string is not None:
-        full_key_url += "?" + url_query_param_string
-
-    # 拼接成代理 URL
-    if is_direct_url:
-        # 如果是绝对路径 URL
-        key_url = key_url_prefix + encrypt_util.encrypt_string(f'{full_key_url}')
+    if url_type == '2':
+        # 其他协议
+        final_url = key_url
     else:
-        # 如果是相对路径 URL
-        key_url = key_url_prefix + encrypt_util.encrypt_string(
-            f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{full_key_url}')
+        # 拼接 Query 参数
+        full_key_url = key_url
+        if url_query_param_string is not None:
+            full_key_url += "?" + url_query_param_string
 
-    # 准备附加额外参数
-    query_params = {}
+        # 拼接成代理 URL
+        if url_type == '0':
+            # 如果是绝对路径 URL
+            key_url = key_url_prefix + encrypt_util.encrypt_string(f'{full_key_url}')
+        elif url_type == '1':
+            # 如果是相对路径 URL
+            key_url = key_url_prefix + encrypt_util.encrypt_string(
+                f'{proxy_m3u8_result.get_relative_m3u8_file_url_root()}{full_key_url}')
 
-    # 是否开启代理
-    if enable_proxy is True:
-        query_params[ENABLE_PROXY] = "true"
+        # 准备附加额外参数
+        query_params = {}
 
-    # 拼接查询参数
-    return request_util.append_query_params_to_url(key_url, query_params)
+        # 是否开启代理
+        if enable_proxy is True:
+            query_params[ENABLE_PROXY] = "true"
+
+        # 拼接查询参数
+        final_url = request_util.append_query_params_to_url(key_url, query_params)
+
+    # 返回结果
+    return final_url
 
 
 def _process_m3u8_url(proxy_m3u8_result: M3u8Response,
