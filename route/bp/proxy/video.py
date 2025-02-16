@@ -6,7 +6,7 @@ from exception import DecryptError, UrlDecryptError
 from route import util as route_util
 from route.consts.param_name import ENABLE_PROXY
 from route.consts.uri_param_name import URI_NAME_VIDEO
-from route.service import proxy as proxy_service
+from route.service import m3u8 as m3u8_proxy_service
 from util import encrypt as encrypt_util
 
 # 创建蓝图
@@ -30,7 +30,7 @@ def proxy_video_file(encrypt_url):
     enable_proxy = route_util.judge_if_true(request.args.get(ENABLE_PROXY))
 
     # 获得视频流响应
-    response = proxy_service.proxy_video(url, enable_proxy)
+    response = m3u8_proxy_service.proxy_video(url, enable_proxy)
 
     response_headers = {
         'Content-Type': response.headers.get('Content-Type') or response.headers.get('content-type')

@@ -7,7 +7,7 @@ from exception import DecryptError, UrlDecryptError
 from route import util as route_util
 from route.consts.param_name import ENABLE_PROXY, SERVER_NAME
 from route.consts.uri_param_name import URI_NAME_M3U8
-from route.service import proxy as proxy_service
+from route.service import m3u8 as m3u8_proxy_service
 from route.exception import RequestM3u8FileError
 
 # 创建蓝图
@@ -31,17 +31,17 @@ def proxy_m3u8_file(encrypt_url):
     server_name = request.args.get(SERVER_NAME)
 
     # 生成反代 M3U8 的链接
-    m3u8_response = proxy_service.get_m3u8_response(url, enable_proxy, server_name)
+    m3u8_object = m3u8_proxy_service.get_m3u8_file(url, enable_proxy, server_name)
 
     # 没有内容，抛出异常
-    if m3u8_response is None:
+    if m3u8_object is None:
         raise RequestM3u8FileError(url=url, message="无法请求指定文件")
 
     # 设置响应头
     headers = {
         'Content-Type': 'application/x-mpegURL',
-        'Content-Length': m3u8_response.get_body_length()
+        'Content-Length': m3u8_object.get_body_length()
     }
 
     # 返回结果（M3U8 文件内容，不是 JSON）
-    return Response(m3u8_response.body, status=200, headers=headers)
+    return Response(m3u8_object.body, status=200, headers=headers)

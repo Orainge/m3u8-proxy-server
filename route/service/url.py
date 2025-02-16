@@ -9,7 +9,7 @@ from route.consts.url_type import URL_TYPE_M3U8, URL_TYPE_MPD, URL_TYPE_VIDEO, U
 from route.consts.url_type import accept_content_type_regex_list_m3u8, accept_content_type_regex_list_mpd, \
     accept_content_type_regex_list_video, accept_content_type_regex_list_stream
 from route.exception import NotSupportContentTypeError, RequestUrlError, RequestM3u8FileError
-from route.service import proxy as proxy_service
+from route.service import m3u8 as m3u8_proxy_service
 from util import proxy as proxy_util
 from util import request as request_util
 from util.request import request_timeout
@@ -49,7 +49,20 @@ def get_redirect_url(url, enable_proxy, server_name):
             break
         elif 300 <= status_code < 400:
             # 处理重定向
-            to_request_url = response.headers["Location"]
+            location = response.headers["Location"]
+            if location.startswith("http"):
+                # 绝对路径
+                to_request_url = location
+            elif location.startswith("/"):
+                # 相对主机路径
+                parsed_url = urlparse(to_request_url)
+                to_request_url = f'{parsed_url.scheme}://{parsed_url.netloc}{location}'
+            else:
+                # 相对路径
+                find_root_url = to_request_url.split('?')[0]  # 截取 ? 前的部分
+                last_slash_index = find_root_url.rfind("/")
+                relative_uri = to_request_url[:last_slash_index + 1]
+                to_request_url = f'{relative_uri}{location}'
         else:
             # 不正常的请求，抛出异常
             raise RequestUrlError(url=to_request_url, status_code=status_code, text=response.text)
@@ -120,19 +133,18 @@ def get_redirect_url(url, enable_proxy, server_name):
     # 生成代理链接
     if url_type is URL_TYPE_M3U8:
         # 寻找真正的 M3U8 链接
-        m3u8_response = proxy_service.get_m3u8_response(
+        m3u8_object = m3u8_proxy_service.get_m3u8_file(
             final_url,
             enable_proxy,
             server_name,
-            check_mode=True
+            need_process=False
         )
 
-        if m3u8_response is None:
+        if m3u8_object is None:
             raise RequestM3u8FileError(url=url, message="无法请求指定文件")
 
-        # 真实链接：m3u8_response.real_url
         # 根据最后的 M3U8 URL，生成代理 URL
-        proxy_url = service.generate_proxy_url(m3u8_response.real_url,
+        proxy_url = service.generate_proxy_url(m3u8_object.url,
                                                URI_NAME_M3U8,
                                                server_name=server_name,
                                                enable_proxy=enable_proxy)
