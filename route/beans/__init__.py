@@ -19,6 +19,9 @@ class M3U8Object:
         self.response_object = response_object
         self.body = str(response_object.text)
 
+        # 去除多余的换行符（如果有）
+        self.body = self.body.replace('\r', '')  # 这个大坑，气死我了
+
         # 获取 Query 参数
         parsed_url = urlparse(url)
         query_param = parse_qs(parsed_url.query)

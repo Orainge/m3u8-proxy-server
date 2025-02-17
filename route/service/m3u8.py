@@ -167,7 +167,7 @@ def _process_uri(uri: str,
 
     if check_uri_type == CHECK_URI_TYPE_OTHER:
         # 其他协议
-        final_url = uri
+        final_uri = uri
     else:
         # 拼接 Query 参数
         full_url = uri
@@ -196,10 +196,10 @@ def _process_uri(uri: str,
             query_params[ENABLE_PROXY] = "true"
 
         # 拼接查询参数
-        final_url = request_util.append_query_params_to_url(uri, query_params)
+        final_uri = request_util.append_query_params_to_url(uri, query_params)
 
     # 返回结果
-    return final_url
+    return final_uri
 
 
 def _check_and_process_if_final_m3u8_file(
@@ -222,11 +222,8 @@ def _check_and_process_if_final_m3u8_file(
     # 设置当前行类型
     line_type = LINE_TYPE_NORMAL
 
-    # 去除多余的换行符（如果有）
-    # body.replace('\r', '') # 这个大坑，气死我了
-
     # 按行遍历处理
-    for line_str in body.replace('\r', '').split("\n"):
+    for line_str in body.split("\n"):
         if line_type == LINE_TYPE_NORMAL:
             # 普通行
             if line_str.startswith("#"):
