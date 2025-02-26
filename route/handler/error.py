@@ -77,7 +77,7 @@ def internal_server_error(e):
         return no_response_handler(e)
     else:
         return response_json_error(
-            message='str(e)',
+            message=f'{str(e)}',
             data=f'{type(e).__name__}: {e}'
         )
 
