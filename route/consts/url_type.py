@@ -16,7 +16,9 @@ accept_content_type_regex_list_m3u8 = [
 accept_content_type_regex_list_mpd = ['application\\/octet-stream', 'application/dash']
 
 # 允许的视频 Content-Type 类型
-accept_content_type_regex_list_video = ['application\\/octet-stream', '^video\\/.*$']
+accept_content_type_regex_list_video = ['application\\/octet-stream',
+                                        '^video\\/.*$', '^audio\\/.*$',
+                                        "text\\/vnd\\.trolltech\\.linguist"]
 
 # 允许的流式传输 Content-Type 类型
 accept_content_type_regex_list_stream = ['application\\/octet-stream', 'video\\/x-flv']
