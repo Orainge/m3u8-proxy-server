@@ -27,8 +27,17 @@ def api_proxy_get_url():
     except Exception:
         raise ParamsError()
 
+    # 对 URL 进行处理
+    # 如果包含 $，应该分割 URL，最后再拼接上去
+    url_str_list = url.rsplit("$", 1) if "$" in url else [url]
+
     # 获取代理后的 URL
-    proxy_url = service.generate_proxy_url(url, URI_NAME_URL, server_name, hide_server_name, enable_proxy)
+    proxy_url = service.generate_proxy_url(url_str_list[0], URI_NAME_URL, server_name, hide_server_name, enable_proxy)
+
+    # 如果包含 $，就拼接上去
+    if len(url_str_list) > 1:
+        proxy_url += "$"
+        proxy_url += url_str_list[1]
 
     # 返回结果
     return response_json_ok(data=proxy_url)
