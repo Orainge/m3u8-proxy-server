@@ -1,8 +1,9 @@
 # M3U8 代理服务
 
 import re
-
 import requests
+
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 from route.beans import M3U8Object
 from route.consts.param_name import ENABLE_PROXY
@@ -111,6 +112,50 @@ def _get_uri(line_str: str) -> str | None:
         return None
 
 
+def _merge_query_params(url: str, query_string: str):
+    """
+    合并 URL 参数到 url 中
+    :param url: URL
+    :param query_string: 要合并的查询参数字符串 (a=1&b=2)
+    """
+    add_leading_slash = not url.startswith("/")  # 记录原始状态
+
+    # 确保 `urlparse` 解析正确（临时加 `/`）
+    if add_leading_slash:
+        url = "/" + url
+
+    # 解析 URL
+    parsed_url = urlparse(url)
+    original_params = parse_qs(parsed_url.query)  # 解析查询参数
+
+    # 解析新查询参数
+    new_params = parse_qs(query_string)
+
+    # 仅添加原 URL 中不存在的参数
+    for key, values in new_params.items():
+        if key not in original_params:
+            original_params[key] = values
+
+    # 重新拼接查询字符串
+    new_query_string = urlencode(original_params, doseq=True)
+
+    # 重新组合 URL
+    updated_url = urlunparse((
+        parsed_url.scheme,  # 为空
+        parsed_url.netloc,  # 为空
+        parsed_url.path,
+        parsed_url.params,
+        new_query_string,
+        parsed_url.fragment
+    ))
+
+    # 如果原始 `final_uri` 没有 `/`，则去掉 `/`
+    if add_leading_slash:
+        updated_url = updated_url.lstrip("/")
+
+    return updated_url
+
+
 def _process_uri(uri: str,
                  server_name: str,
                  enable_proxy: bool,
@@ -171,8 +216,10 @@ def _process_uri(uri: str,
     else:
         # 拼接 Query 参数
         full_url = uri
+
+        # 对同名参数进行处理
         if m3u8_object.query_param_string is not None:
-            full_url += "?" + m3u8_object.query_param_string
+            _merge_query_params(full_url, m3u8_object.query_param_string)
 
         if check_uri_type == CHECK_URI_TYPE_ABSOLUTE:
             # 绝对路径
