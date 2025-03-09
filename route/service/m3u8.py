@@ -219,7 +219,7 @@ def _process_uri(uri: str,
 
         # 对同名参数进行处理
         if m3u8_object.query_param_string is not None:
-            _merge_query_params(full_url, m3u8_object.query_param_string)
+            full_url = _merge_query_params(full_url, m3u8_object.query_param_string)
 
         if check_uri_type == CHECK_URI_TYPE_ABSOLUTE:
             # 绝对路径
