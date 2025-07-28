@@ -274,7 +274,8 @@ def _check_and_process_if_final_m3u8_file(
         enable_proxy: bool,
         server_name: str,
         need_process: bool,
-        request_cookies: dict = None) -> bool:
+        request_cookies: dict = None,
+        m3u8_max_stream: bool = False) -> bool:
     """
     判断是否是最后要返回的 M3U8 文件，并对文件进行处理
     :param m3u8_object: 要处理/检查的 M3U8 对象
@@ -282,6 +283,7 @@ def _check_and_process_if_final_m3u8_file(
     :param server_name: 服务器名称
     :param need_process: 是否需要处理; True/False: 会/不会对 M3U8 文件进行深层次处理
     :param request_cookies: 请求时 URL 时携带的 Cookie
+    :param m3u8_max_stream: M3U8 文件中，是否只保留最清晰的视频流
     """
     body = m3u8_object.body  # M3U8 文件内容
     m3u8_stream_count = 0  # 轨道数
@@ -395,8 +397,15 @@ def _check_and_process_if_final_m3u8_file(
         return False
     else:
         # 这是最后一个 M3U8 文件
-        # 处理完成，更新 M3U8 文件
-        m3u8_object.body = new_body
+        # 如果需要处理
+        if need_process is True:
+            # 如果需要过滤最高画质
+            if m3u8_max_stream:
+                new_body = m3u8_util.get_filter_max_bandwidth_stream_m3u8_content(new_body)
+
+            # 处理完成，更新 M3U8 文件
+            m3u8_object.body = new_body
+
         return True
 
 
@@ -404,6 +413,7 @@ def get_m3u8_file(url: str,
                   enable_proxy: bool,
                   server_name: str,
                   request_cookies: dict = None,
+                  m3u8_max_stream: bool = False,
                   need_process: bool = True) -> M3U8Object:
     """
     请求 M3U8 文件
@@ -411,6 +421,7 @@ def get_m3u8_file(url: str,
     :param enable_proxy: 是否启用代理访问 M3U8 文件
     :param server_name: 服务器名称
     :param request_cookies: 请求时 URL 时携带的 Cookie
+    :param m3u8_max_stream: M3U8 文件中，是否只保留最清晰的视频流
     :param need_process: 是否需要处理; True/False: 会/不会对 M3U8 文件进行深层次处理
     :return:
     """
@@ -425,7 +436,8 @@ def get_m3u8_file(url: str,
             enable_proxy,
             server_name,
             need_process,
-            request_cookies=request_cookies
+            request_cookies=request_cookies,
+            m3u8_max_stream=m3u8_max_stream
         )
 
         if is_final_m3u8_file:

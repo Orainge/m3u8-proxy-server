@@ -4,7 +4,7 @@ from flask import Blueprint, request, Response
 
 from exception import DecryptError, UrlDecryptError
 from route import util as route_util
-from route.consts.param_name import ENABLE_PROXY, SERVER_NAME, REQUEST_COOKIES
+from route.consts.param_name import ENABLE_PROXY, SERVER_NAME, REQUEST_COOKIES, M3U8_MAX_STREAM
 from route.consts.uri_param_name import URI_NAME_URL
 from route.service import url as url_service
 from route.exception import NotSupportContentTypeError
@@ -31,13 +31,15 @@ def proxy_m3u8_file(encrypt_url):
     enable_proxy = route_util.judge_if_true(request.args.get(ENABLE_PROXY))
     server_name = request.args.get(SERVER_NAME)
     request_cookies_param = request.args.get(REQUEST_COOKIES)  # 请求 URL 时携带的 Cookie
+    m3u8_max_stream = route_util.judge_if_true(request.args.get(M3U8_MAX_STREAM))  # M3U8 文件，是否只保留最清晰的视频流
 
     # 获取跳转的 URL
     redirect_url = url_service.get_redirect_url(
         url,
         enable_proxy,
         server_name,
-        request_util.get_cookies_dict_from_params(request_cookies_param)
+        request_util.get_cookies_dict_from_params(request_cookies_param),
+        m3u8_max_stream
     )
 
     # 没有跳转的 URL，抛出异常

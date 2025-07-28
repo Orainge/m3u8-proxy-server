@@ -18,13 +18,14 @@ from util.mpd import XMLFile
 from urllib.parse import parse_qs, urlparse
 
 
-def get_redirect_url(url, enable_proxy, server_name, request_cookies: dict):
+def get_redirect_url(url, enable_proxy, server_name, request_cookies: dict, m3u8_max_stream: bool):
     """
     获取跳转链接
     :param url: 原始非加密的 M3U8 文件 URL
     :param enable_proxy: 是否启用代理访问 M3U8 文件
-    :param request_cookies: 请求时 URL 时携带的 Cookie
     :param server_name: 服务器名称
+    :param request_cookies: 请求时 URL 时携带的 Cookie
+    :param m3u8_max_stream: M3U8 文件中，是否只保留最清晰的视频流
     """
     # 先请求 URL，看看是什么类型的链接
     request_success = False  # 请求是否成功
@@ -150,6 +151,7 @@ def get_redirect_url(url, enable_proxy, server_name, request_cookies: dict):
             enable_proxy,
             server_name,
             request_cookies=cookies,
+            m3u8_max_stream=m3u8_max_stream,
             need_process=False
         )
 
@@ -161,6 +163,7 @@ def get_redirect_url(url, enable_proxy, server_name, request_cookies: dict):
                                                URI_NAME_M3U8,
                                                server_name=server_name,
                                                request_cookies=cookies,
+                                               m3u8_max_stream=m3u8_max_stream,
                                                enable_proxy=enable_proxy)
     elif url_type is URL_TYPE_MPD:
         proxy_url = service.generate_proxy_url(final_url,
