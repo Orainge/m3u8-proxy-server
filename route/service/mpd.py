@@ -20,15 +20,19 @@ from util.mpd import XMLFile
 
 def get_mpd_response(url: str,
                      enable_proxy: bool,
-                     request_params: dict = None) -> XMLFile:
+                     request_params: dict = None,
+                     request_cookies: dict = None) -> XMLFile:
     """
     请求 MPD 文件
     :param url: 原始非加密的 MPD 文件 URL
     :param enable_proxy: 是否启用代理访问 M3U8 文件
     :param request_params: 额外请求的参数（附带到实际请求中）
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :return: XMLFile 对象
     """
-    xml_files = do_request_mpd_file(url, enable_proxy, request_params)
+    xml_files = do_request_mpd_file(url, enable_proxy,
+                                    request_params=request_params,
+                                    request_cookies=request_cookies)
 
     # 检查是否存在 BaseURL
     base_url_path = 'Period/BaseURL'
@@ -56,12 +60,14 @@ def get_mpd_response(url: str,
 
 def do_request_mpd_file(url: str,
                         enable_proxy: bool,
-                        request_params: dict = None) -> XMLFile:
+                        request_params: dict = None,
+                        request_cookies: dict = None) -> XMLFile:
     """
     请求 MPD 文件
     :param url: 原始非加密的 MPD 文件 URL
     :param enable_proxy: 是否启用代理访问 MPD 文件
     :param request_params: 额外请求的参数（附带到实际请求中）
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :return: MPD 文件内容字符串
     """
     # 请求，请求次数限制在设置的最大重定向次数
@@ -75,6 +81,7 @@ def do_request_mpd_file(url: str,
                                     'User-Agent': request_util.get_user_agent(url),
                                 },
                                 allow_redirects=False,
+                                cookies=request_cookies,
                                 proxies=proxy_util.get_proxies(url, enable_proxy))
 
         # 获取请求结果 code，根据请求结果 code 进行判断
@@ -118,11 +125,12 @@ def do_request_mpd_file(url: str,
     raise RequestMPDFileError(message="请求次数超过设置的最大重定向次数", url=url)
 
 
-def proxy_mpd_media_files(url: str, request_params: dict = None) -> Response:
+def proxy_mpd_media_files(url: str, request_params: dict = None, request_cookies: dict = None) -> Response:
     """
     代理请求视频文件
     :param url: 原始的媒体文件 URL
     :param request_params: 额外请求的参数
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :return:
     """
     # 执行请求并返回结果
@@ -133,6 +141,7 @@ def proxy_mpd_media_files(url: str, request_params: dict = None) -> Response:
                             headers={
                                 'User-Agent': request_util.get_user_agent(url),
                             },
+                            cookies=request_cookies,
                             proxies=proxy_util.get_proxies(url),
                             stream=True)
 

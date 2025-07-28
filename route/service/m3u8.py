@@ -6,7 +6,7 @@ import requests
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 from route.beans import M3U8Object
-from route.consts.param_name import ENABLE_PROXY
+from route.consts.param_name import ENABLE_PROXY, REQUEST_COOKIES
 from route.consts.uri_param_name import URI_NAME_PROXY, URI_NAME_M3U8, URI_NAME_VIDEO, URI_NAME_KEY
 from route.consts.url_type import (accept_content_type_regex_list_m3u8,
                                    accept_content_type_regex_list_video,
@@ -39,11 +39,12 @@ CHECK_URI_TYPE_RELATIVE_HOST = 2  # 相对主机路径
 CHECK_URI_TYPE_OTHER = 3  # 其他协议
 
 
-def _do_request_m3u8_file(url: str, enable_proxy: bool) -> M3U8Object:
+def _do_request_m3u8_file(url: str, enable_proxy: bool, request_cookies: dict | None) -> M3U8Object:
     """
     请求 M3U8 文件
     :param url: 原始非加密的 M3U8 文件 URL
     :param enable_proxy: 是否启用代理访问 M3U8 文件
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :return:
     """
     # 请求，请求次数限制在设置的最大重定向次数
@@ -56,6 +57,7 @@ def _do_request_m3u8_file(url: str, enable_proxy: bool) -> M3U8Object:
                                     'User-Agent': request_util.get_user_agent(url),
                                 },
                                 allow_redirects=False,
+                                cookies=request_cookies,
                                 proxies=proxy_util.get_proxies(url, enable_proxy))
 
         # 获取请求结果 code，根据请求结果 code 进行判断
@@ -173,7 +175,8 @@ def _process_uri(uri: str,
                  server_name: str,
                  enable_proxy: bool,
                  m3u8_object: M3U8Object,
-                 uri_type: int) -> str:
+                 uri_type: int,
+                 request_cookies: dict) -> str:
     """
     处理 URI
     :param uri: 原始 URI
@@ -181,6 +184,7 @@ def _process_uri(uri: str,
     :param enable_proxy: 是否使用外部代理请求文件
     :param m3u8_object: 需要处理的 M3U8 对象
     :param uri_type: URI 类型
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :return 处理后的 URI
     """
     # 参数准备
@@ -252,6 +256,9 @@ def _process_uri(uri: str,
         query_params = {}
 
         # 是否开启代理
+        if request_cookies is not None and len(request_cookies) > 0:
+            query_params[REQUEST_COOKIES] = request_util.get_cookies_query_param_from_dict(request_cookies)
+
         if enable_proxy is True:
             query_params[ENABLE_PROXY] = "true"
 
@@ -266,13 +273,15 @@ def _check_and_process_if_final_m3u8_file(
         m3u8_object: M3U8Object,
         enable_proxy: bool,
         server_name: str,
-        need_process: bool) -> bool:
+        need_process: bool,
+        request_cookies: dict = None) -> bool:
     """
     判断是否是最后要返回的 M3U8 文件，并对文件进行处理
     :param m3u8_object: 要处理/检查的 M3U8 对象
     :param enable_proxy: 是否使用外部代理请求文件
     :param server_name: 服务器名称
     :param need_process: 是否需要处理; True/False: 会/不会对 M3U8 文件进行深层次处理
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     """
     body = m3u8_object.body  # M3U8 文件内容
     m3u8_stream_count = 0  # 轨道数
@@ -305,7 +314,9 @@ def _check_and_process_if_final_m3u8_file(
                             m3u8_stream_count += 1
                             if service_util.enable_proxy_m3u8:
                                 # 代理 M3U8
-                                process_uri = _process_uri(uri, server_name, enable_proxy, m3u8_object, URI_TYPE_M3U8)
+                                process_uri = _process_uri(
+                                    uri, server_name, enable_proxy, m3u8_object, URI_TYPE_M3U8, request_cookies
+                                )
                                 # 将代理的 URI 放入到原来的位置
                                 line_str = line_str.replace(uri, process_uri)
                 elif line_str.startswith("#EXT-X-KEY"):
@@ -317,7 +328,9 @@ def _check_and_process_if_final_m3u8_file(
                         if uri is not None:
                             if service_util.enable_proxy_key:
                                 # 代理 M3U8 KEY
-                                process_uri = _process_uri(uri, server_name, enable_proxy, m3u8_object, URI_TYPE_KEY)
+                                process_uri = _process_uri(
+                                    uri, server_name, enable_proxy, m3u8_object, URI_TYPE_KEY, request_cookies
+                                )
                                 # 将代理的 KEY URI 放入到原来的位置
                                 line_str = line_str.replace(uri, process_uri)
                 elif line_str.startswith("#EXT-X-PREFETCH"):
@@ -326,7 +339,9 @@ def _check_and_process_if_final_m3u8_file(
                     if need_process is True:
                         # 需要处理
                         video_url = line_str.split(":", 1)[1]
-                        video_url = _process_uri(video_url, server_name, enable_proxy, m3u8_object, URI_TYPE_VIDEO)
+                        video_url = _process_uri(
+                            video_url, server_name, enable_proxy, m3u8_object, URI_TYPE_VIDEO, request_cookies
+                        )
                         line_str = f"#EXT-X-PREFETCH:{video_url}"
         elif line_type == LINE_TYPE_STREAM_INF:
             # 可变视频流(多轨道)
@@ -338,13 +353,17 @@ def _check_and_process_if_final_m3u8_file(
 
             if need_process is True and service_util.enable_proxy_m3u8:
                 # 代理 M3U8
-                line_str = _process_uri(line_str, server_name, enable_proxy, m3u8_object, URI_TYPE_M3U8)
+                line_str = _process_uri(
+                    line_str, server_name, enable_proxy, m3u8_object, URI_TYPE_M3U8, request_cookies
+                )
         elif line_type == LINE_TYPE_EXTINF:
             # 视频分片
             line_type = LINE_TYPE_NORMAL
             if need_process is True and service_util.enable_proxy_video:
                 # 代理视频流
-                line_str = _process_uri(line_str, server_name, enable_proxy, m3u8_object, URI_TYPE_VIDEO)
+                line_str = _process_uri(
+                    line_str, server_name, enable_proxy, m3u8_object, URI_TYPE_VIDEO, request_cookies
+                )
 
         # 这一行处理完成，附加当前这一行
         new_body += line_str + "\n"
@@ -384,26 +403,29 @@ def _check_and_process_if_final_m3u8_file(
 def get_m3u8_file(url: str,
                   enable_proxy: bool,
                   server_name: str,
+                  request_cookies: dict = None,
                   need_process: bool = True) -> M3U8Object:
     """
     请求 M3U8 文件
     :param url: 原始非加密的 M3U8 文件 URL
     :param enable_proxy: 是否启用代理访问 M3U8 文件
     :param server_name: 服务器名称
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :param need_process: 是否需要处理; True/False: 会/不会对 M3U8 文件进行深层次处理
     :return:
     """
     # 递归查找最终含 ts 流的 M3U8 文件（指定层级）
     for i in range(m3u8_util.get_max_deep(url) + 1):
         # 请求并获取 M3U8 Object
-        m3u8_object = _do_request_m3u8_file(url, enable_proxy)
+        m3u8_object = _do_request_m3u8_file(url, enable_proxy, request_cookies)
 
         # 判断是否是最后要返回的 M3U8 文件，并对文件进行处理
         is_final_m3u8_file = _check_and_process_if_final_m3u8_file(
             m3u8_object,
             enable_proxy,
             server_name,
-            need_process
+            need_process,
+            request_cookies=request_cookies
         )
 
         if is_final_m3u8_file:
@@ -414,12 +436,12 @@ def get_m3u8_file(url: str,
     raise RequestM3u8FileError(f"请求超过最大层级: [{url}]")
 
 
-def proxy_video(url, enable_proxy) -> requests.Response:
+def proxy_video(url, enable_proxy, request_cookies: dict = None) -> requests.Response:
     """
     代理请求视频文件
     :param url: 原始非加密的视频 URL
     :param enable_proxy: 是否启用代理访问 M3U8 文件
-    :param user_agent: 请求 User-Agent
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :return:
     """
     # 执行请求并返回结果
@@ -429,6 +451,7 @@ def proxy_video(url, enable_proxy) -> requests.Response:
                             headers={
                                 'User-Agent': request_util.get_user_agent(url),
                             },
+                            cookies=request_cookies,
                             proxies=proxy_util.get_proxies(url, enable_proxy),
                             stream=True)
 
@@ -444,33 +467,35 @@ def proxy_video(url, enable_proxy) -> requests.Response:
     raise NotSupportContentTypeError
 
 
-def proxy_key(url, enable_proxy) -> requests.Response:
+def proxy_key(url, enable_proxy, request_cookies: dict = None) -> requests.Response:
     """
     代理请求 M3U8 KEY 文件
     :param url: 原始非加密的视频 URL
     :param enable_proxy: 是否启用代理访问 M3U8 文件
-    :param user_agent: 请求 User-Agent
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :return:
     """
-    response = requests.get(url,
-                            timeout=request_timeout,
-                            headers={
-                                'User-Agent': request_util.get_user_agent(url),
-                            },
-                            proxies=proxy_util.get_proxies(url, enable_proxy),
-                            stream=True)
+    response = requests.get(
+        url,
+        timeout=request_timeout,
+        headers={
+            'User-Agent': request_util.get_user_agent(url),
+        },
+        proxies=proxy_util.get_proxies(url, enable_proxy),
+        cookies=request_cookies,
+        stream=True
+    )
 
     # 不校验 KEY 文件 Content-Type 类型
     return response
 
 
-def proxy_stream(url, enable_proxy) -> requests.Response:
+def proxy_stream(url, enable_proxy, request_cookies: dict = None) -> requests.Response:
     """
     代理请求流式传输文件
     :param url: 原始非加密的流式传输文件 URL
     :param enable_proxy: 是否启用代理访问流式传输文件
-    :param user_agent: 请求 User-Agent
-    :return:
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     """
     # 执行请求并返回结果
     # 这里允许直接跳转，因为播放是流式传输
@@ -480,6 +505,7 @@ def proxy_stream(url, enable_proxy) -> requests.Response:
                                 'User-Agent': request_util.get_user_agent(url),
                             },
                             proxies=proxy_util.get_proxies(url, enable_proxy),
+                            cookies=request_cookies,
                             stream=True)
 
     # 判断 Content-Type 是否是合法的

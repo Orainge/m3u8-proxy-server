@@ -1,8 +1,12 @@
 # 通用服务方法
+import base64
+import json
+import urllib.parse
+
 from util import server as server_util
 from util import encrypt as encrypt_util
 from util import request as request_util
-from route.consts.param_name import SERVER_NAME, ENABLE_PROXY
+from route.consts.param_name import SERVER_NAME, ENABLE_PROXY, REQUEST_COOKIES
 from route.consts.uri_param_name import URI_NAME_MPD, URI_NAME_PROXY
 from route.bp.proxy.mpd import index_name as mpd_index_name
 
@@ -12,6 +16,7 @@ def generate_proxy_url(url: str,
                        server_name: str = None,
                        hide_server_name: bool = False,
                        enable_proxy: bool = False,
+                       request_cookies: dict = None,
                        query_params: dict = None):
     """
     生成代理 URL
@@ -20,6 +25,7 @@ def generate_proxy_url(url: str,
     :param server_name: 服务器名称
     :param hide_server_name: 是否在生成的 URL 链接中隐藏服务器名称
     :param enable_proxy: 是否启用代理访问 M3U8 文件
+    :param request_cookies: 请求时 URL 时携带的 Cookie
     :param query_params: 额外携带的请求参数
     """
 
@@ -37,6 +43,11 @@ def generate_proxy_url(url: str,
     # 准备额外参数
     if query_params is None:
         query_params = {}
+
+    # 是否在 URL 中附加 Cookie
+    if request_cookies is not None and len(request_cookies) > 0:
+        # 将 Cookie 放入到请求参数中
+        query_params[REQUEST_COOKIES] = request_util.get_cookies_query_param_from_dict(request_cookies)
 
     if url != URI_NAME_MPD:
         # 不是 MPD 才附加参数，避免泄露隐私

@@ -27,6 +27,13 @@ class TokenParamsError(ParamsError):
         super().__init__(message='Token 不正确')
 
 
+class CookieParamsError(ParamsError):
+    """Token 参数不正确"""
+
+    def __init__(self):
+        super().__init__(message='Cookie 不正确')
+
+
 class DecryptError(ParamsError):
     """解密不正确"""
 

@@ -1,8 +1,13 @@
 # 请求工具类
-
+import base64
+import json
 import re
+import urllib.parse
+
 from urllib.parse import urlencode, urljoin
+
 import server_config
+from exception import CookieParamsError
 
 # 默认 User-Agent
 default_user_agent = server_config.get_config(["request", "userAgent", "default"],
@@ -62,3 +67,34 @@ def get_max_redirect_times(url: str) -> int:
 
     # 返回默认值
     return default_max_redirect_times
+
+
+def get_cookies_query_param_from_dict(cookie_dict: dict) -> str | None:
+    """
+    将 Cookie Dict 转换为 URL 中的请求参数
+    """
+    # if cookie_dict is None or len(cookie_dict) == 0:
+    #     # 没有 Dict，无需转换
+    #     return None
+
+    json_str = json.dumps(cookie_dict, ensure_ascii=False)
+    b64_str = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+    cookie_query_param = urllib.parse.quote(b64_str)
+    return cookie_query_param
+
+
+def get_cookies_dict_from_params(cookie_query_param: str) -> dict | None:
+    """
+    将 URL 中的请求参数的 Cookie 转换为 Dict
+    """
+    if cookie_query_param is None or len(cookie_query_param) == 0:
+        # 没有传入参数，无需转换
+        return None
+
+    json_str = base64.b64decode(cookie_query_param).decode('utf-8')
+
+    try:
+        cookie_dict = json.loads(json_str)
+        return cookie_dict
+    except Exception:
+        raise CookieParamsError()

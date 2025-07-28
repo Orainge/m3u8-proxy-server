@@ -3,7 +3,7 @@ from flask import Blueprint, request
 
 from exception import ParamsError
 from route import service
-from route.consts.param_name import URL, SERVER_NAME, HIDE_SERVER_NAME, ENABLE_PROXY
+from route.consts.param_name import URL, SERVER_NAME, HIDE_SERVER_NAME, ENABLE_PROXY, REQUEST_COOKIES
 from route.consts.uri_param_name import URI_NAME_URL
 from route.util import response_json_ok
 
@@ -24,6 +24,7 @@ def api_proxy_get_url():
         server_name = body[SERVER_NAME] if SERVER_NAME in body else None
         hide_server_name = body[HIDE_SERVER_NAME] if HIDE_SERVER_NAME in body else False
         enable_proxy = body[ENABLE_PROXY] if ENABLE_PROXY in body else False
+        request_cookies = body[REQUEST_COOKIES] if REQUEST_COOKIES in body else None
     except Exception:
         raise ParamsError()
 
@@ -32,7 +33,11 @@ def api_proxy_get_url():
     url_str_list = url.rsplit("$", 1) if "$" in url else [url]
 
     # 获取代理后的 URL
-    proxy_url = service.generate_proxy_url(url_str_list[0], URI_NAME_URL, server_name, hide_server_name, enable_proxy)
+    proxy_url = service.generate_proxy_url(url_str_list[0], URI_NAME_URL,
+                                           server_name=server_name,
+                                           hide_server_name=hide_server_name,
+                                           enable_proxy=enable_proxy,
+                                           request_cookies=request_cookies)
 
     # 如果包含 $，就拼接上去
     if len(url_str_list) > 1:

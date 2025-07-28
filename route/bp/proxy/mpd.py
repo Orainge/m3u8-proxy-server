@@ -3,10 +3,13 @@
 from flask import Blueprint, request, Response
 
 import util
+
 from util import encrypt as encrypt_util
+from util import request as request_util
+
 from exception import DecryptError, UrlDecryptError
 from route import util as route_util
-from route.consts.param_name import ENABLE_PROXY, SERVER_NAME, SERVICE_PARAMS_LIST
+from route.consts.param_name import ENABLE_PROXY, SERVICE_PARAMS_LIST, REQUEST_COOKIES
 from route.consts.uri_param_name import URI_NAME_MPD
 from route.service import mpd as mpd_service
 from route.exception import RequestMPDFileError
@@ -36,9 +39,14 @@ def proxy_mpd_file(encrypt_url):
     # 获取请求的查询参数
     request_params = request.args.to_dict()  # 转换为普通字典
     request_params = {k: v for k, v in request_params.items() if k not in SERVICE_PARAMS_LIST}
+    request_cookies_param = request.args.get(REQUEST_COOKIES)  # 请求 URL 时携带的 Cookie
 
     # 生成 MPD 文件
-    mpd_file = mpd_service.get_mpd_response(url, enable_proxy, request_params)
+    mpd_file = mpd_service.get_mpd_response(
+        url, enable_proxy,
+        request_params=request_params,
+        request_cookies=request_util.get_cookies_dict_from_params(request_cookies_param)
+    )
 
     # 没有内容，抛出异常
     if mpd_file is None:
@@ -75,9 +83,14 @@ def proxy_mpd_media_files(encrypt_url, sub_path):
     # 获取请求的查询参数
     request_params = request.args.to_dict()  # 转换为普通字典
     request_params = {k: v for k, v in request_params.items() if k not in SERVICE_PARAMS_LIST}
+    request_cookies_param = request.args.get(REQUEST_COOKIES)  # 请求 URL 时携带的 Cookie
 
     # 获得视频流响应
-    response = mpd_service.proxy_mpd_media_files(media_file_url, request_params)
+    response = mpd_service.proxy_mpd_media_files(
+        media_file_url,
+        request_params=request_params,
+        request_cookies=request_util.get_cookies_dict_from_params(request_cookies_param)
+    )
 
     response_headers = {
         'Content-Type': response.headers.get('Content-Type') or response.headers.get('content-type')
