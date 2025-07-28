@@ -91,7 +91,8 @@ def get_cookies_dict_from_params(cookie_query_param: str) -> dict | None:
         # 没有传入参数，无需转换
         return None
 
-    json_str = base64.b64decode(cookie_query_param).decode('utf-8')
+    b64_str = urllib.parse.unquote(cookie_query_param)
+    json_str = base64.b64decode(b64_str).decode('utf-8')
 
     try:
         cookie_dict = json.loads(json_str)
