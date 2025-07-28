@@ -29,6 +29,8 @@ def get_redirect_url(url, enable_proxy, server_name):
     response = None
     to_request_url = url
 
+    cookies = None
+
     for i in range(request_util.get_max_redirect_times(url) + 1):
         response = requests.get(to_request_url,
                                 timeout=request_timeout,
@@ -37,10 +39,15 @@ def get_redirect_url(url, enable_proxy, server_name):
                                 },
                                 allow_redirects=False,
                                 proxies=proxy_util.get_proxies(to_request_url, enable_proxy),
-                                stream=True)
+                                stream=True,
+                                cookies=cookies)
 
         # 获取请求结果 code，根据请求结果 code 进行判断
         status_code = response.status_code
+
+        # 获取 cookie 字典
+        cookies = response.cookies.get_dict()
+
         if status_code == 200:
             # 正常请求
             request_success = True

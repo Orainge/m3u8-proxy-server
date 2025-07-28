@@ -1,8 +1,9 @@
 # MPD 代理服务
 
-import re
 import requests
 from flask import Response
+
+from urllib.parse import urlparse
 
 from route.consts.uri_param_name import URI_NAME_PROXY, URI_NAME_MPD
 from route.exception import RequestMPDFileError, NotSupportContentTypeError
@@ -95,7 +96,20 @@ def do_request_mpd_file(url: str,
             raise NotSupportContentTypeError
         elif 300 <= status_code < 400:
             # 处理重定向
-            to_request_url = response.headers["Location"]
+            location = response.headers["Location"]
+            if location.startswith("http"):
+                # 绝对路径
+                to_request_url = location
+            elif location.startswith("/"):
+                # 相对主机路径
+                parsed_url = urlparse(to_request_url)
+                to_request_url = f'{parsed_url.scheme}://{parsed_url.netloc}{location}'
+            else:
+                # 相对路径
+                find_root_url = to_request_url.split('?')[0]  # 截取 ? 前的部分
+                last_slash_index = find_root_url.rfind("/")
+                relative_uri = to_request_url[:last_slash_index + 1]
+                to_request_url = f'{relative_uri}{location}'
         else:
             # 不正常的请求，抛出异常
             raise RequestMPDFileError(url=to_request_url, status_code=status_code, text=response.text)
