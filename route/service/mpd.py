@@ -16,7 +16,7 @@ from util.request import request_timeout
 from util.mpd import XMLFile
 
 
-# match = re.fullmatch("正则表达式", "测试字符串")
+# match = re.search("正则表达式", "测试字符串")
 
 def get_mpd_response(url: str,
                      enable_proxy: bool,

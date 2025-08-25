@@ -20,7 +20,7 @@ from util import server as server_util
 from util import service as service_util
 from util.request import request_timeout
 
-# match = re.fullmatch("正则表达式", "测试字符串")
+# match = re.search("正则表达式", "测试字符串")
 
 # 行类型
 LINE_TYPE_NORMAL = 0  # 普通行
@@ -74,7 +74,7 @@ def _do_request_m3u8_file(url: str, enable_proxy: bool, request_cookies: dict | 
                 # 判断 Content-Type 是否是合法的
                 content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
                 for regex in accept_content_type_regex_list_m3u8:
-                    if re.fullmatch(regex, content_type):
+                    if re.search(regex, content_type):
                         # Content-Type 合法
                         is_m3u8_file = True
 
@@ -470,7 +470,7 @@ def proxy_video(url, enable_proxy, request_cookies: dict = None) -> requests.Res
     # 判断 Content-Type 是否是合法的
     content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
     for regex in accept_content_type_regex_list_video:
-        if re.fullmatch(regex, content_type):
+        if re.search(regex, content_type):
             # Content-Type 合法，返回结果
             return response
 
@@ -523,7 +523,7 @@ def proxy_stream(url, enable_proxy, request_cookies: dict = None) -> requests.Re
     # 判断 Content-Type 是否是合法的
     content_type = response.headers.get('Content-Type') or response.headers.get('content-type')
     for regex in accept_content_type_regex_list_stream:
-        if re.fullmatch(regex, content_type):
+        if re.search(regex, content_type):
             # Content-Type 合法，返回结果
             return response
 

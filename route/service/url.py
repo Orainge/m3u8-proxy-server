@@ -88,7 +88,7 @@ def get_redirect_url(url, enable_proxy, server_name, request_cookies: dict, m3u8
 
     # 先检查是否是流式传输的 Content-Type
     for regex in accept_content_type_regex_list_stream:
-        if re.fullmatch(regex, content_type):
+        if re.search(regex, content_type):
             url_type = URL_TYPE_STREAM
             break
 
@@ -106,21 +106,21 @@ def get_redirect_url(url, enable_proxy, server_name, request_cookies: dict, m3u8
     # 检查 User-Agent: 是否是 M3U8
     if url_type is None:
         for regex in accept_content_type_regex_list_m3u8:
-            if re.fullmatch(regex, content_type):
+            if re.search(regex, content_type):
                 url_type = URL_TYPE_M3U8
                 break
 
     # 检查 User-Agent: 是否是 MPD
     if url_type is None:
         for regex in accept_content_type_regex_list_mpd:
-            if re.fullmatch(regex, content_type):
+            if re.search(regex, content_type):
                 url_type = URL_TYPE_MPD
                 break
 
     # 检查 User-Agent: 是否是 Video
     if url_type is None:
         for regex in accept_content_type_regex_list_video:
-            if re.fullmatch(regex, content_type):
+            if re.search(regex, content_type):
                 url_type = URL_TYPE_VIDEO
                 break
 
@@ -130,7 +130,7 @@ def get_redirect_url(url, enable_proxy, server_name, request_cookies: dict, m3u8
             if response_text.splitlines()[0] == "#EXTM3U":
                 url_type = URL_TYPE_M3U8
         except Exception:
-            # XML 解析失败
+            # 解析失败
             pass
 
     # 检查文件内容：是否是 MPD 文件

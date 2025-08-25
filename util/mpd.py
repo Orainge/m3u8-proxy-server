@@ -93,7 +93,7 @@ class XMLFile:
         if self.content_type is not None:
             # 判断 Content-Type 是否是合法的
             for regex in accept_content_type_regex_list_mpd:
-                if re.fullmatch(regex, self.content_type):
+                if re.search(regex, self.content_type):
                     # Content-Type 合法
                     return True
 
