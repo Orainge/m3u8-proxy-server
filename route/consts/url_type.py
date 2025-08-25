@@ -10,7 +10,7 @@ URL_TYPE_STREAM = 'stream'  # 流式传输
 accept_content_type_regex_list_m3u8 = [
     'application\\/octet-stream',
     '^(audio|application)\\/(vnd\\.apple\\.|x-)*(m|M)(p|P)(e|E)(g|G)(u|U)(r|R)(l|L)$',
-    'text/plain'
+    'text\\/plain'
 ]
 
 # 允许的 MPD 文件 Content-Type 类型
@@ -21,7 +21,9 @@ accept_content_type_regex_list_video = ['application\\/octet-stream',
                                         '^video\\/.*$', '^audio\\/.*$',
                                         "text\\/vnd\\.trolltech\\.linguist",
                                         "text\\/vtt",
-                                        "image/jpeg"]
+                                        "image\\/jpeg",
+                                        "text\\/html",
+                                        "text\\/json"]
 
 # 允许的流式传输 Content-Type 类型
 accept_content_type_regex_list_stream = ['application\\/octet-stream', 'video\\/x-flv']

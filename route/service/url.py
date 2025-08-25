@@ -103,33 +103,37 @@ def get_redirect_url(url, enable_proxy, server_name, request_cookies: dict, m3u8
         # 抛出异常：请求次数超过设置的最大重定向次数
         raise RequestUrlError(message="请求次数超过设置的最大重定向次数", url=url)
 
-    # 检查是否是 M3U8 的 Content-Type
+    # 检查 User-Agent: 是否是 M3U8
     if url_type is None:
         for regex in accept_content_type_regex_list_m3u8:
             if re.fullmatch(regex, content_type):
                 url_type = URL_TYPE_M3U8
                 break
 
-    # 检查是否是 MPD 的 Content-Type
+    # 检查 User-Agent: 是否是 MPD
     if url_type is None:
         for regex in accept_content_type_regex_list_mpd:
             if re.fullmatch(regex, content_type):
                 url_type = URL_TYPE_MPD
                 break
 
-    # 检查是否是 Video 的 Content-Type
+    # 检查 User-Agent: 是否是 Video
     if url_type is None:
         for regex in accept_content_type_regex_list_video:
             if re.fullmatch(regex, content_type):
                 url_type = URL_TYPE_VIDEO
                 break
 
-    # 检查是否是 M3U8 文件
+    # 检查文件内容：是否是 M3U8
     if url_type is None:
-        if response_text.splitlines()[0] == "#EXTM3U":
-            url_type = URL_TYPE_M3U8
+        try:
+            if response_text.splitlines()[0] == "#EXTM3U":
+                url_type = URL_TYPE_M3U8
+        except Exception:
+            # XML 解析失败
+            pass
 
-    # 检查是否是 MPD 文件
+    # 检查文件内容：是否是 MPD 文件
     if url_type is None:
         try:
             xml_file = XMLFile(response_text)
